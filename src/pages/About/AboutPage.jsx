@@ -12,7 +12,7 @@ import cv from '../../cv/Rahul_Vinayak_Technical_Author_Developer.pdf';
 import { FormattedMessage } from 'react-intl';
 
 /* Img */
-import imgabout from '../../img/home.jpg';
+import imgabout from '../../img/home.png';
 
 const About = () => {
 
