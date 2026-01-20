@@ -1,3 +1,3 @@
-# Portfolio imransom29 1.9.0 🖥️
+# Portfolio imransom29 🖥️
 
 ![preview img](/preview.png)
