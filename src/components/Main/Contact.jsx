@@ -28,8 +28,6 @@ const Contact = () => (
                 steps={[
                     'Gmail', 1500,
                     'WhatsApp', 1500,
-                    'Instragram', 1500,
-                    'Telegram', 1500,
                     'Linkedin', 1500,
                     'Github', 1500,
                 ]}
@@ -84,30 +82,6 @@ const Contact = () => (
                 </div>
                 <div className="text">
                     GitHub
-                </div>
-            </a>
-            <a href="https://www.instagram.com/imransom29/" target="_blank" rel="noopener noreferrer" data-aos="zoom-in">
-                <div className="layer">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span className="fab fa-instagram"></span>
-                </div>
-                <div className="text">
-                    Instagram
-                </div>
-            </a>
-            <a href="https://t.me/imransom29" target="_blank" rel="noopener noreferrer" data-aos="zoom-in">
-                <div className="layer">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span className="fab fa-telegram"></span>
-                </div>
-                <div className="text">
-                    Telegram
                 </div>
             </a>
         </div>
