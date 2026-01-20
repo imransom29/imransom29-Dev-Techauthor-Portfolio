@@ -258,7 +258,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./appointment-scheduling-agent.webp`)}
+                            src={proyectImg(`./appointment-scheduling-agent.png`)}
                             alt='proyectos'
                         />
                         <div className="content">

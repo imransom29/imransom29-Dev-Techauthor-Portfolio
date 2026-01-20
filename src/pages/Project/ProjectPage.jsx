@@ -68,7 +68,7 @@ const githubProjects = [
     repo: "appointment-scheduling-agent",
     description: "AI-powered appointment scheduling agent",
     tech: ["Python", "LangChain", "OpenAI"],
-    img: "./appointment-scheduling-agent.webp"
+    img: "./appointment-scheduling-agent.png"
   },
   {
     name: "Communication Aggregator",
