@@ -26,7 +26,7 @@ const githubProjects = [
     repo: "Droid-Slam-in-Jetson-AGX-ORIN-Developer-kit",
     description: "SLAM implementation on NVIDIA Jetson AGX ORIN Developer Kit",
     tech: ["Python", "CUDA", "ROS"],
-    img: "./Droid-Slam-in-Jetson-AGX-ORIN-Developer-kit .jpeg"
+    img: "./Droiod-slam-jetson-AGX.jpg"
   },
   {
     name: "Real-Time Data Pipeline",
@@ -61,7 +61,7 @@ const githubProjects = [
     repo: "Insurance-Claim-Processing-Automation",
     description: "Automated insurance claim processing system",
     tech: ["Python", "ML", "FastAPI"],
-    img: "./Insurance-Claim-Processing-Automation.png"
+    img: "./Insurance-Claim-Processing-Automation.jpg"
   },
   {
     name: "Appointment Scheduling Agent",

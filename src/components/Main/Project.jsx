@@ -75,7 +75,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./Droid-Slam-in-Jetson-AGX-ORIN-Developer-kit .jpeg`)}
+                            src={proyectImg(`./Droiod-slam-jetson-AGX.jpg`)}
                             alt='proyectos'
 
                         />
@@ -118,7 +118,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./Insurance-Claim-Processing-Automation.png`)}
+                            src={proyectImg(`./Insurance-Claim-Processing-Automation.jpg`)}
                             alt='proyectos'
                         />
                         <div className="content">
