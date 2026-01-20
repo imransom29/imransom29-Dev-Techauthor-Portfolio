@@ -53,7 +53,7 @@ const Project = () => {
                 >
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-app-18.png`)}
+                            src={proyectImg(`./log_stream_distributed_system_image.jpeg`)}
                             alt='proyectos'
 
                         />
@@ -75,7 +75,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-14.jpg`)}
+                            src={proyectImg(`./Droid-Slam-in-Jetson-AGX-ORIN-Developer-kit .jpeg`)}
                             alt='proyectos'
 
                         />
@@ -97,7 +97,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-app-17.png`)}
+                            src={proyectImg(`./Real-Time Data Pipeline Using-Kafka.png`)}
                             alt='proyectos'
 
                         />
@@ -118,7 +118,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-7.jpg`)}
+                            src={proyectImg(`./Insurance-Claim-Processing-Automation.png`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -139,7 +139,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-6.jpg`)}
+                            src={proyectImg(`./garbage-classification.png`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -159,7 +159,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-12.jpg`)}
+                            src={proyectImg(`./gaming-leaderboard.jpg`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -179,7 +179,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-5.jpg`)}
+                            src={proyectImg(`./Communication-aggregator -system.png`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -199,7 +199,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-8.jpg`)}
+                            src={proyectImg(`./3d-agency picture.png`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -219,7 +219,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-10.jpg`)}
+                            src={proyectImg(`./Smart-coach.png`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -239,7 +239,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-9.jpg`)}
+                            src={proyectImg(`./network-diagnostics-troubleshooting-toolkit.jpg`)}
                             alt='proyectos'
                         />
                         <div className="content">
@@ -258,7 +258,7 @@ const Project = () => {
                     </SwiperSlide>
                     <SwiperSlide className='caja'>
                         <img
-                            src={proyectImg(`./proyecto-11.jpg`)}
+                            src={proyectImg(`./appointment-scheduling-agent.webp`)}
                             alt='proyectos'
                         />
                         <div className="content">
