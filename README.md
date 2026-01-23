@@ -1,13 +1,10 @@
-# Portfolio imransom29 🖥️
+# Rahul Vinayak – Portfolio
 
 Welcome to my personal portfolio repository. This project showcases my work as a **Software Developer** and **Technical Author**, highlighting production-grade backend systems, AI/ML platforms, and technical documentation.
 
 ---
 
 ![preview img](/preview1.png)
-
-# Rahul Vinayak – Portfolio
-
 
 
 ## 👋 About Me
