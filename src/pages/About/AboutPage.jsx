@@ -53,7 +53,7 @@ const About = () => {
               <p>
                 <FormattedMessage
                   id='about-info-1'
-                  defaultMessage="Hi, I'm Rahul Vinayak, a Technical Author with a strong software engineering background. I graduated from CMR Institute of Technology with a B.Tech in Information Science and Engineering. I bring a programmer's mindset to documentation, focusing on clarity, correctness, and long-term maintainability."
+                  defaultMessage="Hi, I'm Rahul Vinayak, a GenAI Developer. I graduated from CMR Institute of Technology with a B.Tech in Information Science and Engineering. I bring a programmer's mindset to documentation, focusing on clarity, correctness, and long-term maintainability."
                 />
               </p>
 
