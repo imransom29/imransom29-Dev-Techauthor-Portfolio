@@ -1,45 +1,101 @@
-SLIDE 1 — "What problem we are solving?"
-Script:
-"Kaz, let me quickly explain what I've understood about the Overwatch Evaluation Framework.
-Right now, our supervisor agent runs on Gemini 2.5. It's working fine. But models keep getting retired. So tomorrow, if we switch to a new model, how do we know it'll work just as well?
-We can't check every answer manually. That's not practical.
-So we're building an automated exam system for our agent. We send test questions to the agent. Overwatch checks the answers — is there hallucination? Is the response relevant? Is it toxic? Then we show the scores to the user. They decide if the new model is ready or not."
-
-SLIDE 2 — "When is this triggered?"
-Script:
-"This is not regular testing. It's on-demand only. We trigger it in two cases:
-One — when we switch models. Like Gemini 2.5 gets retired, we move to something new.
-Two — when we change the system prompt or agent logic.
-Now let me walk through the flow.
-User uploads test cases — just questions and expected answers. Our service sends each question to the agent. Agent gives a response.
-Since the agent is connected to Overwatch through TAWK, every question-answer gets recorded as a trace. Overwatch sees these traces and automatically checks — hallucination? Relevance? Toxicity?
-Then our service pulls those scores from Overwatch and shows the user a report. Done."
-
-SLIDE 3 — "How to Find Traces in Chatbot Responses?"
-Script:
-"The whole thing comes down to three steps.
-Step 1 — Connect the agent to Overwatch. We use TAWK for this since it works with LangGraph directly. Once connected, the agent starts sending traces automatically.
-Step 2 — Run the test cases. User uploads questions, agent answers them, and all traces go into Overwatch. Overwatch evaluates each one.
-Step 3 — Pull the results. We call Overwatch and get back the scores — hallucination, relevance, toxicity. That becomes our evaluation report."
-
-SLIDE 4 — "TAWK Overwatch Features"
-Script:
-"Why TAWK? Because it's not just for tracing. It gives us five things in one package:
-Tracing — records what the agent does and sends it to Overwatch.
-Authentication — secure connection to Tachyon.
-Guardrails — blocks harmful content.
-Memory — remembers past conversations.
-Session Handling — manages user sessions.
-Right now, we mainly need the tracing part. But once TAWK is in, everything else is ready to use too."
-
-SLIDE 5 — "Onboarding Process"
-Script:
-"Before we start, we need access to Overwatch. There are four steps:
-First — raise a ticket on the CASE portal. Request type is 'Observability and Evaluation Onboarding.' Reference ticket is CASE-48949.
-Second — once the ticket is done, we get role-based access through AIMS.
-Third — we get our credentials — Space ID and API Key — from the Fargo Foundations team. Without these, the agent can't send traces.
-Fourth — if we want guardrails, same CASE portal process.
-So Kaz, two things I need from you:
-One — are we already onboarded? Do we have the Space ID and API Key?
-Two — does Overwatch have an API to pull metrics? That decides how I build the service.
-Once I know these two things, I'll have the full plan ready."
+DECK 1: AI Agentic Starter Kit (AHP Pro)
+Problem Statement
+Across WIMT, every team building a new AI agent today starts from scratch — duplicating effort on project structure, supervisor patterns, MCP integration, authentication, observability, and deployment.
+Initial scaffolding consumes 4–6 weeks per team before any business logic is written, slowing time-to-value across the LOB.
+Without a shared foundation, compliance, security, and governance controls are implemented inconsistently — creating audit and regulatory risk.
+No standardized, reusable mechanism exists today to onboard new teams onto a production-grade AI teammate pattern.
+Manual setup increases operational risk and blocks the bank from scaling GenAI adoption efficiently.
+Solution Overview
+Build a production-grade AI Agentic Starter Kit (AHP Pro) packaging the Supervisor Agent, MCP Server, and Chatbot UI as reusable cookiecutter templates.
+Onboard the starter kit to Tachyon Marketplace as a reference app, enabling discovery and code-level reuse across all WIMT teams.
+Onboard the bundled service to Orchestra IDP Storefront, allowing developers to fill a form and receive a fully provisioned, ready-to-build project ZIP — no Git access required.
+Bake in enterprise standards by default — Tachyon routing, structured logging, observability hooks, and security controls — so every consuming team inherits compliance out of the box.
+Savings Levers (After)
+Time-to-value: New team onboarding reduced from 4–6 weeks to under 1 day.
+Standardization: Single source of truth for agent patterns — eliminates 80%+ of duplicated scaffolding work across teams.
+Compliance: Built-in Tachyon governance, audit logging, and security controls applied uniformly across every adopting team.
+Side Table: AHP Pro Components & Adoption Pipeline
+Component
+Status
+Supervisor Agent
+Production-Ready
+MCP Server
+Production-Ready
+Chatbot UI
+Production-Ready
+Tachyon Marketplace Onboarding
+In Progress
+Orchestra IDP Storefront Onboarding
+In Progress
+Automation Endpoint (FastAPI)
+Built — Deployment Pending
+Target Teams (WIMT)
+15+
+🎯 DECK 2: Tachyon SDK 2.0 Implementation
+Problem Statement
+The AHP Pro supervisor agent currently uses direct model calls, bypassing the enterprise-standard gateway and creating governance, audit, and resiliency gaps.
+Switching between models (e.g., Gemini 2.5 to next-gen models) today requires code-level changes, blocking teams from adapting quickly to model retirements or new model availability.
+No standardized path exists for WIMT agents to leverage Tachyon SDK 2.0 capabilities — model resiliency, automatic failover, observability hooks, and centralized governance.
+Existing teams that onboard the starter kit do not inherit Tachyon connectivity by default — every team has to wire it manually.
+Without SDK adoption, model migration timelines are slow and expose the bank to availability and compliance risks.
+Solution Overview
+Integrate Tachyon SDK 2.0 (TAWK) into the AHP Pro cookiecutter supervisor agent, replacing direct model calls with SDK-managed routing.
+Enable multi-model connectivity through the enterprise gateway — currently Gemini 2.5, with flexibility to onboard future models without architectural changes.
+Bundle the SDK integration into the reference app, so every new team onboarding through the starter kit inherits Tachyon connectivity out of the box — no additional setup required.
+Activate enterprise capabilities by default — model resiliency, automatic failover, request-level observability, and governance compliance — through the SDK.
+Savings Levers (After)
+Model migration time: Reduced from weeks of code-level changes to configuration-only updates.
+Resiliency: Automatic failover to backup models — eliminates downtime when a primary model is slow or unavailable.
+Compliance: 100% of starter-kit-adopting teams inherit enterprise-grade governance, audit trails, and gateway routing by default.
+Side Table: SDK 2.0 Capabilities Enabled
+Capability
+Provided By Tachyon SDK 2.0
+Multi-model Routing
+✓
+Automatic Failover (Model Resiliency)
+✓
+Enterprise Authentication
+✓
+Guardrails
+✓
+Session & Memory Handling
+✓
+Trace Generation (for Overwatch)
+✓
+Centralized Governance
+✓
+Total Enterprise Capabilities
+7
+🎯 DECK 3: Evaluation Framework with Tachyon Overwatch
+Problem Statement
+WIMT AI systems have no self-service way for teams to validate their agent's performance — every evaluation today requires tech team involvement.
+When teams change the system prompt, swap models, or upgrade agent logic, there is no standardized validation path before going live.
+Critical model migrations (e.g., Gemini 2.5 retirement) lack a data-driven validation step, exposing the bank to quality, hallucination, and compliance risks.
+Existing evaluation approaches are manual, inconsistent across teams, and not aligned with the Overwatch platform already available in the enterprise.
+Without an evaluation framework, model and prompt changes go to production with limited confidence in accuracy, relevance, and safety.
+Solution Overview
+Build a self-service Overwatch Evaluation Framework that allows WIMT teams to upload custom test cases, trigger on-demand evaluation runs, and receive actionable metrics — without tech team dependency.
+Leverage Tachyon Overwatch (built on Arize AI) as the evaluation backbone — traces flow automatically from the agent (via TAWK), and Overwatch auto-evaluates each trace.
+Surface key metrics directly to users — hallucination rate, relevance score, toxicity, tool-calling accuracy, and latency — in a single evaluation report.
+Trigger evaluations on demand for two critical scenarios — (a) system prompt or agent logic changes, and (b) model migrations — ensuring every change is data-validated before going live.
+Savings Levers (After)
+Tech team dependency: Eliminated for routine evaluations — teams self-serve on demand.
+Model migration confidence: Every transition is data-validated against custom test cases before production rollout.
+Quality & compliance: Continuous visibility into hallucination, relevance, and safety metrics across all WIMT AI systems.
+Side Table: Evaluation Metrics Captured
+Metric
+Purpose
+Hallucination Rate
+Detects fabricated or unsupported responses
+Relevance Score
+Measures how well the response addresses the prompt
+Toxicity Score
+Flags unsafe or inappropriate content
+Tool-Calling Accuracy
+Validates if agent picked the right tool/API
+Latency
+Measures response time
+Test Cases Passed
+Aggregate pass/fail per evaluation run
+Total Auto-Evaluated Metrics
+6
