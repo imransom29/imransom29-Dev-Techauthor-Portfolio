@@ -1,4 +1,5 @@
-![Uploading image.png…]()
+<img width="612" height="408" alt="1_EbjLD2Y_yzsJcznImnuzOw-removebg-preview" src="https://github.com/user-attachments/assets/49752e16-9a62-45e3-bc4b-9beed9f0c68a" />
+
 
 
 in this workspace. It is a trace-driven evaluation service that integrates with Tachyon Overwatch (Arize Phoenix deployed at Wells Fargo).
