@@ -1,522 +1,522 @@
-<img width="612" height="408" alt="1_EbjLD2Y_yzsJcznImnuzOw-removebg-preview" src="https://github.com/user-attachments/assets/49752e16-9a62-45e3-bc4b-9beed9f0c68a" />
+PROMPT FOR CLAUDE CODE — 9-Slide Director Presentation (Final)
+Yeh prompt complete hai. Phase 2 (judge validation) ka rigor + framework comparison + architecture deep dive + strategic roadmap — sab integrated. Tu yeh Claude Code mein paste karega — woh codebase padhega aur 9 slides generate karega.
 
 
+START COPYING FROM HERE ⬇️
 
-in this workspace. It is a trace-driven evaluation service that integrates with Tachyon Overwatch (Arize Phoenix deployed at Wells Fargo).
+Task: Generate 9-Slide Technology Director Presentation
+I have an existing codebase at overwatch-eval-service/ in this workspace. It is a trace-driven evaluation service that integrates with Tachyon Overwatch (which is Arize Phoenix deployed inside Wells Fargo's Tachyon ecosystem). It uses Phoenix's built-in evaluation templates to score LLM spans for hallucination.
 
-I need to present this work to my Technology Director. The Director is senior and sees many engineering initiatives. To stand out, I want to explain my work from four engineering lenses simultaneously:
+I need to present this work to my Technology Director. The Director is senior (15+ years), sees many engineering initiatives, and values:
 
-
-Machine Learning (ML) perspective — what evaluation paradigm, metrics, validation philosophy
-Deep Learning (DL) perspective — how LLM judges work, why LLM-as-a-Judge, reliability concerns
-Generative AI (GenAI) perspective — production AI safety, hallucination detection, observability for non-deterministic systems
-Backend Engineering perspective — service architecture, API design, async patterns, integration choices
-
-
-PLUS — I want to demonstrate landscape awareness by including:
-
-
-Arize AI backend deep-dive — how Arize/Phoenix actually works under the hood
-Framework comparison — Arize Phoenix vs RAGAS vs DeepEval vs scratch-built evaluation
-Scratch-built alternative architecture — what we would build if we started from zero, and why we didn't
-
+Strategic trade-off analysis (not just "what I built")
+Multi-disciplinary engineering thinking
+Production maturity awareness
+Rigorous validation (not vibe-based claims)
+Clear forward strategy
 
 Generate a complete 9-slide presentation as a markdown document.
 
 For each slide, provide:
 
-
 Slide Title (short, impactful)
-Slide Subtitle (one line, descriptive)
-Visual Content (described in detail — diagrams, tables, code snippets if relevant)
+Slide Subtitle (one line)
+Visual Content (detailed description — diagrams, tables, code snippets)
 Key Points (3-5 bullets, executive language)
-Speaker Script (verbal walkthrough, 60-90 seconds per slide, conversational but professional)
-Likely Director Question + Prepared Answer (one strategic question per slide)
+Speaker Script (60-90 seconds spoken, 150-220 words)
+Likely Director Question + Prepared Answer
+
+
+Slide Structure (9 Slides)
+Slide 1: Title & Strategic Framing
+Frame the work strategically.
+
+Set the stage: Wells Fargo is deploying generative AI in production. AI is non-deterministic. Traditional QA doesn't scale.
+Position: "I built a trace-driven evaluation service that addresses this gap by leveraging our existing Tachyon Overwatch platform."
+Hook: tangible business problem (e.g., when we retire Gemini 2.5, how do we know the replacement is safe without weeks of manual testing?)
+Establish multi-disciplinary thinking — this work sits at intersection of ML, DL, GenAI, Backend
+Slide 2: Multi-Disciplinary Engineering Lens
+Show I think across disciplines.
+
+A 2x2 quadrant visual showing the four lenses:
+
+ML lens — Evaluation paradigm, classification metrics, threshold-based decisions
+DL lens — LLM-as-Judge mechanism, calibration concerns, bias mitigation
+GenAI lens — Production AI safety, hallucination detection, trace-driven observability
+Backend lens — Service architecture, async patterns, integration design
+
+Brief description of how each lens applies. This slide is short — sets up the depth in later slides.
+Slide 3: The Evaluation Paradigm
+Why LLM-as-a-Judge — Honest Trade-Off Analysis
+
+Three options compared: | Approach | Pros | Cons | Why Not Chosen | |----------|------|------|----------------| | Reference metrics (BLEU, ROUGE) | Cheap, deterministic | Fails on semantic equivalence; rewards lexical match | Wrong tool for generative outputs | | Human evaluation | Gold standard accuracy | Doesn't scale; costly; slow | Bottleneck at our trajectory | | LLM-as-a-Judge | Scales; captures semantics | Judge bias, inconsistency, self-preference | Chosen with explicit mitigations |
+
+Then explicitly acknowledge judge failure modes:
+
+Self-preference bias — judges favor outputs from same model family
+Verbosity bias — judges over-reward confident, lengthy outputs
+Inconsistency — same input, different runs, different judgments
+
+Our mitigations:
+
+Zero-temperature deterministic judgments (eliminates run-to-run variance)
+Arize's benchmarked templates (precision/recall documented against human-annotated benchmarks)
+Generator-judge model decoupling (different model families — this is Phase 2 hardening)
+Span-level granularity (lets humans audit specific decisions)
+
+This slide is critical — shows the Director that we know what we're doing, not blindly trusting LLMs.
+Slide 4: Framework Benchmarking — Why Phoenix
+The Build vs Adopt vs Adapt Decision
+
+Detailed comparison matrix:
+
+Dimension
+Arize Phoenix
+RAGAS
+DeepEval
+Scratch Build
+Primary Use Case
+Trace-driven production eval
+RAG pipeline evaluation
+Unit-test style LLM testing
+Customizable
+Eval Paradigm
+LLM-as-Judge + classical + custom
+LLM-as-Judge (RAG-focused)
+Assertion API for CI/CD
+Whatever we build
+Built-in Templates
+Hallucination, Q&A, relevance, toxicity, summarization
+Faithfulness, Answer Relevance, Context Precision/Recall
+G-Eval, Hallucination, Bias, Toxicity
+None
+Trace Integration
+First-class — OpenTelemetry-native
+Dataset-based, no traces
+Dataset-based, pytest-style
+Would have to build
+Observability Integration
+Native (Phoenix = observability platform)
+None
+None
+None
+Production Maturity
+High (used by many production LLM systems)
+Medium (research community)
+Medium (CI/CD-focused)
+Untested
+Wells Fargo Fit
+Already deployed as Tachyon Overwatch
+Not deployed; would require new infra
+Not deployed
+Months of platform team work
+Cost To Adopt
+Zero — already in stack
+Medium
+Medium
+Very high
+Maintenance
+Low (Arize maintains templates)
+Medium (community-driven)
+Medium
+Very high
+Engineering Hours to Production
+Hours
+Weeks
+Weeks
+Months
 
 
+Then provide decision rationale:
 
-Audience Profile (Important — Tailor Tone To This)
+Why Phoenix won:
 
-The Technology Director:
+Tachyon Overwatch IS Phoenix — alignment with existing infrastructure reduces friction by an order of magnitude
+First-class trace integration matches production reality (we have traces, not datasets)
+Zero adoption cost — we're already on the platform
 
+When other choices would be better:
 
-Has 15+ years of engineering experience
-Cares about: business outcomes, risk management, scalability, engineering rigor, team leverage
-Does NOT want: tutorial-level code details, framework-internals deep dives, defensive language
-Wants to see: strategic thinking, multi-disciplinary understanding, production maturity awareness, landscape awareness
-Has limited time — every slide must earn its place
+RAGAS: pure RAG pipeline evaluation in research context
+DeepEval: CI/CD prompt-regression testing
+Scratch build: highly specialized criteria where no framework fits
 
+Honest: Phoenix wasn't chosen because it's trendy. It was chosen because it's already our evaluation engine, and matching our service to it was the rational engineering decision.
+Slide 5: Architecture & Implementation
+How The Service Works Today
 
+Architecture diagram showing 5 stages:
 
-Slide Structure Required (9 Slides Total)
+1. Engineer hits POST /api/v1/evaluate
 
-Slide 1: Title & Framing
+2. Service connects to Tachyon Overwatch via GraphQL
 
+3. Fetches existing spans (real production traces)
 
-Set the stage — what is being built and why it matters strategically
-Position the speaker as someone thinking across multiple disciplines AND aware of the broader ecosystem
-Hook with a tangible business problem the service solves
+4. Per-span: applies Phoenix HALLUCINATION_PROMPT_TEMPLATE with judge LLM
 
+5. Logs results back as span annotations → visible in Overwatch UI
 
-Slide 2: The ML Lens — What Evaluation Paradigm Did We Choose
+6. Returns aggregate + per-span report
 
+Reference actual code from my codebase:
 
-Explain the evaluation approach from classical ML perspective
-Compare evaluation paradigms: human evaluation, reference-based metrics (BLEU, ROUGE, BERTScore), LLM-as-a-Judge
-Why we chose what we chose, with trade-off analysis
-Metric definitions and threshold rationale (PASS < 5%, REVIEW 5-10%, FAIL > 10%)
-Show maturity: discuss precision/recall implications of evaluator choice
-Mention concept of "evaluator drift" and how we account for it
+File structure (app/routers, app/services with overwatch_connector, span_evaluator, report_service)
+Key design decisions:
+Trace-driven, not dataset-driven — evaluates real production data
+No mock agent in production path — POC only used mock for initial demonstration
+No TAWK in eval service — clean separation (we're a client, not an agent)
+Async throughout — non-blocking I/O for concurrent span evaluation
+Partial-success error handling — one bad span doesn't crash the batch
 
+Quantify production-readiness:
 
-Slide 3: The DL Lens — Why LLM-as-a-Judge Works (and Where It Doesn't)
+~50 spans evaluated per run in under 3 minutes
+Zero data movement outside Wells Fargo network
+Compliance-ready (audit trail in Overwatch)
+Multi-DC deployable via Helm chart (Phase 1 readiness)
+Slide 6: The Phoenix Platform — Under The Hood
+What Powers Our Evaluation
 
+Quick architecture walkthrough of Arize Phoenix internals. This demonstrates engineering depth.
 
-Explain LLM-as-a-Judge mechanism from deep learning standpoint
-Why a transformer-based judge can evaluate another transformer's output
-Calibration concerns, judge bias, judge consistency
-Why we chose gpt-oss-20b as judge model — context window, reasoning capability, cost
-Mitigations we implemented for known LLM-judge failure modes:
+5 components to cover:
 
-Temperature = 0 for determinism
-Rails (constrained output via HALLUCINATION_PROMPT_RAILS_MAP)
-Benchmarked template (Arize publishes precision/F1 on standard datasets)
+1. Tracing Layer (OpenTelemetry-based)
 
+Phoenix is built on OpenTelemetry — industry standard for distributed tracing
+Agents instrumented with OpenInference (Arize's semantic conventions for LLM tracing)
+Traces flow over OTLP (OpenTelemetry Protocol) to Phoenix collector
+Each LLM call becomes a span with standardized attributes: input messages, output messages, model name, token counts
 
+2. Storage Layer
 
-Reference: Arize's benchmark on built-in template precision and F1
-Discuss: when LLM-as-a-Judge fails (subjective tasks, judge weaker than evaluated model, multi-turn context)
+Spans stored in backend (Postgres self-hosted, columnar at scale)
+Optimized for high write throughput
+Indexed for fast filtering by project, span kind, time range
 
+3. Evaluation Engine
 
-Slide 4: The GenAI Lens — Production AI Safety & Hallucination Detection
+phoenix.evals Python library
+Three building blocks:
+Prompt Templates — HALLUCINATION_PROMPT_TEMPLATE, etc.
+Rails — output parsers constraining judge responses
+Classifier orchestrator — create_classifier() ties template + LLM + rails
 
+4. Annotation Loop
 
-Why hallucination is the #1 risk in production LLM systems for financial services
-Traditional QA doesn't scale for non-deterministic AI
-Trace-driven evaluation as the modern paradigm (vs synthetic dataset evaluation)
-Per-span scoring vs aggregate scoring — why granularity matters operationally
-Connection to Wells Fargo's broader observability strategy (Tachyon Overwatch + Power BI executive reporting)
-Brief mention of related concerns: prompt injection, data leakage, output toxicity — and how this framework extends to those
+Eval results written back as span annotations: (eval_name, label, score, explanation)
+Annotations are first-class objects in observability — not separate system
+Queryable via same API as spans
 
+5. UI Layer
 
-Slide 5: Arize AI Backend Deep Dive — How Phoenix Actually Works
+Web frontend reads spans + annotations
+Per-span eval scores inline with traces
 
-This slide is purely educational for the director — shows speaker's depth.
+Then connect to our service:
 
+We are a consumer of spans (read side)
+We are a producer of annotations (write side)
+We do not run the platform — we leverage it
+Slide 7: Judge Validation — The Rigor Behind The Numbers
+This is the differentiating slide. Most engineers stop at "we built it." We go further: "we validated the validator."
 
-Origin: Arize AI is a commercial observability company; Phoenix is their open-source observability toolkit
-Architecture: Phoenix backend is built on OpenTelemetry standards
-Storage: Spans stored in columnar databases optimized for high-cardinality trace data
-Query layer: GraphQL API for structured trace retrieval
-Evaluation: Built-in templates are Python prompt strings + structured output parsing via Pydantic-style schemas
-LLM provider abstraction: Phoenix's LLM class wraps OpenAI-compatible APIs (Azure, Anthropic, custom gateways like ours)
-Tachyon Overwatch = Phoenix deployed inside Wells Fargo infrastructure (confirmed by Kaz)
-Why this matters: We can use Phoenix's public docs/tutorials as authoritative reference for our internal platform
+Frame the problem: "How do we know our judge model is actually accurate? Without judge validation, every score we publish is unverified. Phase 2 of our roadmap addresses this with research-grade rigor."
 
+The Phase 2 Judge Validation Framework:
 
-Slide 6: Framework Comparison — Arize Phoenix vs RAGAS vs DeepEval vs Custom
+1. Production-Grounded Synthetic Benchmark
 
-Use a comparison matrix. Show that we evaluated alternatives.
+Extract real production inputs from Tachyon Overwatch (after PII scrubbing via Wells Fargo's DLP service)
+For each input, generate 4 synthetic outputs:
+1 factual response (correct)
+1 obvious hallucination (fabricated entities, blatant contradictions)
+1 medium hallucination (partial truths, off-by-one numerical errors)
+1 subtle hallucination (unsupported inference, slight reframing)
 
-DimensionArize PhoenixRAGASDeepEvalScratch BuildPrimary focusTrace observability + evalRAG-specific evalUnit-test style evalAnything we wantTrace integrationNative (it IS the trace store)NoneNoneManual integrationBuilt-in evaluatorsHallucination, Relevance, Toxicity, User Frustration, RAG, QA CorrectnessFaithfulness, Context Recall, Context Precision, Answer RelevancyG-Eval, GEval, Custom Metrics, Bias, ToxicityWhatever we writeProduction deploymentDesigned for productionMore research/lab useCI/CD test integrationDepends on engineeringWells Fargo deployment✅ Already deployed as Tachyon Overwatch❌ Would need new platform❌ Would need new platform❌ Major buildLLM-as-Judge benchmarkingPublished precision/F1 on standard datasetsLimited published benchmarksSome published benchmarksWe'd need to do this ourselvesSpan-level integrationNativeBolt-onBolt-onWe build itTime to first evalHoursDaysDaysWeeks-MonthsLong-term maintenanceArize teamRAGAS communityConfident AI (Vendor)Wells Fargo team
+2. Generator-Judge Decoupling
 
-Show why we chose Arize Phoenix:
+Generator model and Judge model from different families (e.g., Claude generates, GPT-OSS judges)
+Eliminates self-preference bias
+Hard requirement enforced at script startup
 
+3. Human Ground Truth via Cohen's Kappa
 
-Already deployed at Wells Fargo (Tachyon Overwatch)
-Native trace integration eliminates ETL overhead
-Battle-tested templates with published benchmarks
-Aligns with broader Wells Fargo observability strategy
+Two domain experts independently label each synthetic case
+Compute Cohen's kappa for inter-rater agreement (target: ≥0.75)
+Third reviewer for tiebreaking disagreements
+Cases without consensus dropped from benchmark
 
+4. Stratified Holdout
 
-But honestly mention:
+Benchmark split into training set (for iteration) and holdout (never used until final validation)
+Stratified by difficulty tier AND length bucket AND complexity bucket
+Deterministic seeded split for reproducibility
 
+5. Statistical Rigor in Reporting
 
-RAGAS would be better if we were RAG-only focused
-DeepEval would be better for unit-test CI integration
-Scratch would give maximum flexibility but at huge engineering cost
+Bootstrap 95% confidence intervals on F1, precision, recall
+Per-difficulty-tier metrics (aggregate F1 hides subtle hallucination failures)
+Per-length-bucket, per-complexity-bucket breakdowns
 
+6. Decision Gates | Phase | Gate | Action If Failed | |-------|------|------------------| | 2A | Compliance + budget approved? | Halt project | | 2B | Baseline F1 ≥ 0.50? | Halt, reconsider judge model | | 2D | Kappa ≥ 0.75? | Reassess reviewer guidance | | 2E | F1 ≥ 0.85 overall AND F1 ≥ 0.70 on subtle? | NEEDS_ITERATION → fallback model chain |
 
-Slide 7: Scratch-Built Alternative — What We Avoided
+Acknowledgment of limitations:
 
-This shows engineering maturity — "we considered building from zero and chose not to."
+Synthetic data ≠ production drift — Phase 3 adds continuous validation
+Two-reviewer ground truth has limits — research-grade rigor would use N=5+ reviewers
+300-case benchmark is starting point, not final answer
 
-Architecture diagram of what we'd build from scratch:
+Why this matters to the Director: "When we publish 'judge F1 = 0.87' on a leadership slide, we want it to be defensible if anyone audits it. This framework is the audit trail."
+Slide 8: Strategic Roadmap
+From POC to Enterprise Capability
 
-[Scratch Eval Framework]
+5-phase roadmap with decision gates and risks:
 
-Data Layer:
-- Custom span storage (PostgreSQL? Or columnar?)
-- Schema design for traces, spans, evaluations
-- ETL pipeline from Wells Fargo agent runtime
+Phase
+Scope
+Timeline
+Key Risk
+Phase 0 (complete)
+Working POC, trace-driven eval, per-span scoring on real Tachyon Overwatch data
+Done
+None — proven
+Phase 1
+Production deployment via Orchestra IDP to UAT, then production with Helm-based multi-DC
+2-3 weeks
+Compliance review timing
+Phase 2
+Judge validation framework (Slide 7) — production-grounded synthetic benchmark + statistical validation
+7-8 weeks
+Domain expert availability (#1 risk)
+Phase 3
+Multi-evaluator support (relevance, toxicity, correctness, summarization) + continuous drift detection
+4-6 weeks
+Judge model fallback strategy if any evaluator fails validation
+Phase 4
+Integration into AHP Pro starter kit — canonical pattern for every new agent
+6-8 weeks
+Cross-team alignment with Tachyon SDK 2.0 work
+Phase 5
+Org-wide adoption — extend to other COO Gen AI use cases
+Quarterly
+Scaling the validation framework
 
-Evaluation Layer:
-- Custom prompt template library
-- Multi-model judge router
-- Result aggregation engine
-- Calibration/validation pipeline
 
-Reliability Layer:
-- Retry/backoff for judge LLM calls
-- Cost tracking
-- Rate limiting
-- Caching of eval results
+Explicit risk acknowledgment (Director appreciates honest risk surfacing):
 
-Observability Layer:
-- Custom UI for browsing eval results
-- Dashboard generation
-- Alert engine for quality regressions
-- API for downstream consumers
+Risk 1: Domain expert availability gates Phase 2. Need formal allocation, not best-effort.
+Risk 2: Compliance review of synthetic data approach may take longer than estimated. Started early.
+Risk 3: Judge model degradation over time requires monthly re-validation infrastructure (Phase 3).
+Risk 4: Phase 4 requires AHP Pro starter kit to be the canonical pattern — needs leadership endorsement.
+Slide 9: The Ask
+What I Need From Leadership
 
-Compliance Layer:
-- Audit logging
-- PII redaction
-- Data retention policies
-- Access control
+Three specific, actionable asks:
 
-Estimated cost to build:
+Ask 1: Sponsor EDITOR Access Elevation in Tachyon Overwatch UAT
 
+Why: Current VIEWER access blocks programmatic dataset creation and full annotation write-back
+Impact: Unblocks Phase 1 production deployment timeline
+Owner: Director-level escalation to platform team
 
-Engineering time: 12-18 months with a 3-engineer team
-Maintenance overhead: 1 dedicated engineer ongoing
-Risk: We'd be reinventing what Arize spent 4+ years building
+Ask 2: Allocate Domain Expert Time for Phase 2 Validation
 
+Why: 2-3 domain experts × 20 hours each for benchmark review (over 4 weeks)
+Impact: Phase 2 cannot proceed without formal allocation
+Owner: Director endorses, manager allocates time
 
-Why we didn't:
+Ask 3: Endorse Phase 4 as Canonical Pattern
 
+Why: For every new agent built at Wells Fargo to have evaluation baked in by default
+Impact: Org-wide observability + eval coverage, not service-by-service decisions
+Owner: Director endorses architectural direction
 
-Wells Fargo's value isn't in re-implementing observability infrastructure
-Time-to-value: Phoenix gave us production-grade eval in days, not months
-Quality: Arize's benchmarked templates outperform what a small team could build in similar time
-Strategic alignment: Tachyon Overwatch is the COO-wide observability platform; standardizing on it is the right call
+Quantified business value:
 
+Faster, safer model migrations (Gemini retirement use case)
+Compliance-grade audit trail for AI quality
+Scalable evaluation across COO Gen AI portfolio
+Reduced incident risk from undetected hallucinations
 
-But preserved optionality:
+Timeline summary:
 
-
-Our span_evaluator.py abstracts the eval engine
-Could swap to RAGAS or scratch implementation later without changing API contract
-This is good architecture: depend on interfaces, not implementations
-
-
-Slide 8: The Backend Lens — Service Architecture & Engineering Choices
-
-
-Show the service architecture (high-level only) — the 5-stage pipeline
-API design principles: REST endpoints, async patterns, separation of concerns
-Integration approach: GraphQL to Overwatch, OpenAI-compatible gateway for judge
-Key engineering decisions and their rationale:
-
-Trace-driven vs dataset-driven (we chose trace-driven per Phoenix's recommended pattern)
-No mock agent in eval service (real spans only)
-No TAWK integration in eval service (it's a client, not an agent)
-Stateless service design (horizontal scaling ready)
-
-
-
-Error handling and reliability story (partial results > no results, every layer has try/except)
-Connection back to the lens narrative: this is where ML/DL/GenAI insights become operational
-
-
-Slide 9: How It All Comes Together + Strategic Forward Look
-
-
-Show the complete request lifecycle in one slide
-Tie back to all four lenses — where ML/DL/GenAI/Backend each show up
-Quantify impact: how many spans evaluated, how fast, with what confidence [VERIFY from code]
-Phased roadmap — what's next (Phase 1, 2, 3, 4)
-How this scales to other Wells Fargo Gen AI use cases
-Connection to the broader org strategy (AHP Pro, COO-wide observability vision)
-The "ask" — what support is needed from leadership (EDITOR access, real agent endpoint, integration timeline)
-
+Phase 1 production deploy: 3 weeks after EDITOR access
+Phase 2 validated benchmark: 8 weeks after domain expert allocation
+Phase 4 canonical pattern: 16 weeks after endorsement
 
 
 Cross-Cutting Requirements
-
-For Visual Content
-
-When you describe visuals, be specific. For example:
-
-
-"A 2x2 quadrant chart showing X axis: cost, Y axis: scalability, with quadrants labeled..."
-"An architecture diagram showing 5 boxes connected by directional arrows..."
-"A code snippet showing the exact lines from app/services/span_evaluator.py that demonstrate built-in template usage..."
-
-
-When useful, embed actual code snippets from the codebase — but only short, illustrative ones (3-10 lines max).
-
-For the comparison matrix in Slide 6, describe it as a table with specific row/column headers.
-
-For the scratch-build architecture in Slide 7, describe it as a layered diagram with labeled components.
-
-For Speaker Scripts
-
-
-Write in first person ("I", "we", "our team")
-Conversational but precise — like an experienced engineer briefing a director
+Visual Content Standards
+Comparison matrices with clear headers and row labels
+Architecture diagrams showing data flow direction with arrows
+Code snippets only where they illustrate a key decision (3-10 lines max)
+Quantified numbers wherever possible
+Speaker Script Standards
+First person ("I", "we", "our team")
 No hedging language ("kind of", "maybe", "I think")
-Use concrete numbers and examples
-Reference specific files/functions from my codebase when relevant
-Each script should be 60-90 seconds when spoken (roughly 150-220 words)
+Conversational but precise
+Reference specific files/functions from the codebase
+60-90 seconds spoken (150-220 words)
+Director Question Standards
+Each slide needs one likely strategic question. Examples:
+
+Slide 1: "How does this differ from the dozens of eval frameworks in the market?"
+Slide 2: "Why does this engineer think they need to know ML AND DL AND backend?"
+Slide 3: "What's the risk that our judge LLM is biased and we're propagating its blind spots?"
+Slide 4: "Are we locked into Arize as a vendor?"
+Slide 5: "How does this scale when we have 50 services instead of 1?"
+Slide 6: "What happens if Arize gets acquired or pivots away from Phoenix?"
+Slide 7: "How do we know our 14% hallucination rate isn't just judge noise?"
+Slide 8: "Why can't Phase 2 happen in parallel with Phase 1?"
+Slide 9: "What's the cost of the asks, in dollars and engineer-hours?"
+
+Provide confident, structured answers (3-4 sentences max).
 
 
-For Director Questions
+Read My Codebase
+Before generating, read these files:
 
-Each slide should have one prepared question the Director is likely to ask. Make these questions:
+overwatch-eval-service/app/main.py
+overwatch-eval-service/app/config.py
+overwatch-eval-service/app/routers/evaluation.py
+overwatch-eval-service/app/services/overwatch_connector.py
+overwatch-eval-service/app/services/span_evaluator.py
+overwatch-eval-service/app/services/report_service.py
+overwatch-eval-service/app/models/schemas.py
+overwatch-eval-service/requirements.txt
+Any README or scripts directory present
 
-
-Strategic (not tactical)
-Pointed (a director would ask)
-Slightly challenging (not softballs)
-
-
-Examples of good director questions for each slide:
-
-Slide 1: "How does this fit our overall AI strategy and roadmap?"
-Slide 2: "If LLM-as-a-Judge has known biases, how do we trust the verdict for compliance-sensitive use cases?"
-Slide 3: "What happens when the judge model itself hallucinates?"
-Slide 4: "How is this different from what platform team is building for COO observability?"
-Slide 5: "If we don't own the Phoenix codebase, what's our risk if Arize changes their open-source direction?"
-Slide 6: "Why didn't we use RAGAS — I've heard it's the standard for RAG eval?"
-Slide 7: "Twelve to eighteen months sounds aggressive — what if we'd taken three years and built it right?"
-Slide 8: "What's the operational cost — engineer time, infra cost — to run this in production?"
-Slide 9: "Who else at Wells Fargo is doing this — and can we partner instead of duplicate?"
-
-Then provide a confident, structured answer (3-4 sentences max per question).
-
-
-Reading My Codebase
-
-Before generating the slides, please read these files in my workspace to understand what I built:
-
-
-overwatch-eval-service/app/main.py — service entry
-overwatch-eval-service/app/config.py — configuration
-overwatch-eval-service/app/routers/evaluation.py — orchestration
-overwatch-eval-service/app/services/overwatch_connector.py — how I fetch spans + log back
-overwatch-eval-service/app/services/span_evaluator.py — how I use Phoenix built-in template
-overwatch-eval-service/app/services/report_service.py — how I generate verdicts
-overwatch-eval-service/app/models/schemas.py — data contracts
-overwatch-eval-service/requirements.txt — dependencies
-
-
-Use the actual function names, file paths, and design decisions from my code when generating slide content. Do not invent details. If something is unclear from the code, mark it with [VERIFY: ...] and I will clarify.
+Use actual function names, file paths, design decisions from my code. Do not invent. Mark unclear items with [VERIFY: ...].
 
 
 Tone Calibration Examples
-
 Bad (Too Tutorial)
-
-
-"LLM-as-a-Judge is a technique where a larger language model evaluates the output of a smaller language model. The judge reads the prompt and response, then decides if the response is correct."
-
-
-
+"LLM-as-a-Judge is when a bigger model evaluates a smaller model's output."
 Good (Director-Appropriate)
-
-
-"We use LLM-as-a-Judge — a transformer evaluating another transformer's output — because human evaluation doesn't scale and reference-matching is too brittle. The trade-off is judge bias, which we mitigate through three controls: zero-temperature deterministic judgments, Arize's benchmarked template with documented precision-recall characteristics, and span-level granularity that lets domain experts spot-check judge outputs."
-
-
-
+"We use LLM-as-a-Judge because reference metrics fail on semantic equivalence and human eval doesn't scale. The trade-off is judge bias — well-documented in research — which we mitigate with deterministic settings, benchmarked templates, and generator-judge decoupling in Phase 2."
 Bad (Defensive)
-
-
-"I tried to follow the Phoenix tutorial as best I could and built something that hopefully works."
-
-
-
+"I tried to follow best practices and hopefully it works."
 Good (Confident Ownership)
-
-
-"We adopted the Phoenix evaluation pattern — fetch existing spans, score with built-in templates, write annotations back — because it's the canonical approach for trace-driven evaluation in our stack. The implementation aligns with how Arize themselves recommend evaluating production LLM traffic."
-
-
-
-Bad (Vague Business Value)
-
-
-"This will help engineers ship faster and catch more issues."
-
-
-
-Good (Concrete Business Value)
-
-
-"When the model team retires Gemini 2.5 next quarter, we'll evaluate the replacement against fifty curated test cases in under three minutes — versus the days of manual spot-checking that would otherwise be required. That's the difference between a controlled model migration and a risky one."
-
-
-
-Bad (One-sided Framework Pitch)
-
-
-"We chose Arize Phoenix because it's the best framework for everything."
-
-
-
-Good (Balanced Engineering Judgment)
-
-
-"We chose Arize Phoenix for three reasons: it's already deployed at Wells Fargo, it has native span integration, and its built-in templates come with published benchmarks. RAGAS would have been a stronger choice if we were RAG-only, and DeepEval has better CI/CD ergonomics. We made the right local-optimum decision for our context."
-
-
+"We adopted the trace-driven evaluation pattern from Arize's documentation because it aligns with how we already collect production data. The implementation is canonical."
+Bad (Vague)
+"Phase 2 will validate the judge somehow."
+Good (Specific)
+"Phase 2 generates a production-grounded synthetic benchmark — 300 cases stratified by difficulty tier, labeled by two independent reviewers with Cohen's kappa ≥ 0.75 required for consensus, then validates judge F1 with bootstrap confidence intervals."
 
 
 Constraints
-
-
-Do not invent metrics or numbers that aren't in my code or reasonable to infer. If you need a number, mark it with [VERIFY].
-Do not include architecture I haven't built — only describe what's actually in the code. If you want to suggest future work, put it in Slide 9's roadmap section.
-Keep tech jargon balanced — use terms a director would know, define ones they wouldn't.
-Each slide should stand alone — if the Director only sees one slide, it should still convey value.
-Framework comparison must be balanced — don't trash RAGAS or DeepEval; explain why Arize fits OUR context.
-Scratch-build slide is about engineering maturity — show we considered it, not that we dismissed it.
-Total length: 9 slides × (description + key points + script + Q&A) — approximately 6000-8000 words total.
-
+Do not invent numbers — use [VERIFY: ...] markers for unknowns
+Do not describe what doesn't exist in code — roadmap goes in Slide 8 only
+Comparison matrix in Slide 4 must reflect actual framework differences — research-accurate
+Phoenix architecture in Slide 6 must use real component names — OpenInference, OTLP, phoenix.evals
+Total length: 7000-9000 words across all 9 slides
 
 
 Output Format
+Single markdown file structured as:
 
-Generate a single markdown file with this structure:
-
-markdown# Multi-Perspective Director Presentation — Overwatch Evaluation Service
+# Director Presentation — Overwatch Evaluation Service
 
 ## Presenter Notes
-[Brief notes on how to present this — pacing, transitions, key moments to emphasize]
+
+[Pacing, transitions, key emphasis moments]
 
 ---
 
 ## SLIDE 1: [Title]
 
 ### Subtitle
-[One-line descriptor]
 
 ### Visual Content
-[Detailed description of what's on the slide]
 
 ### Key Points
-- Point 1
-- Point 2
-- Point 3
 
 ### Speaker Script (60-90 seconds)
-[Verbal walkthrough in first person, conversational but professional]
 
 ### Likely Director Question
-**Q:** [Strategic question]
 
-**A:** [Confident, structured answer]
+**Q:** ...
+
+**A:** ...
 
 ---
 
-## SLIDE 2: ...
+## SLIDE 2-9: ...
 
-[Same structure repeated for all 9 slides]
+[Same structure]
 
 ---
 
 ## CLOSING NOTES
 
 ### Key Themes Across Slides
-[3-5 sentences on the meta-narrative — what story the 9 slides tell together]
 
 ### Transition Phrases Between Slides
-[Suggested phrases to move from one slide to the next smoothly]
 
-### What To Have Ready (Backup)
-[List of things to have on hand in case Director goes deep — open VS Code tabs, etc.]
+### Anticipated Tough Questions (Beyond Per-Slide Q&A)
 
-### If Time Is Cut Short
-[Which slides to skip if Director only has 5 minutes — prioritized list]
+### What To Have Ready (Backup Materials)
 
 
 Final Instruction
+Read codebase first. Generate the 9-slide presentation. Make it the kind of presentation that demonstrates an engineer who:
 
-Read my codebase first. Then generate the presentation. Make it the kind of presentation that gets a junior engineer noticed by senior leadership — strategic, multi-disciplinary, landscape-aware, grounded in real implementation, and forward-looking.
+Built something working (proven by code, Slide 5)
+Considered alternatives rigorously (Slide 4)
+Understands the platform internals (Slide 6)
+Plans rigorous validation (Slide 7)
+Has a strategic forward look with honest risk assessment (Slide 8)
+Knows what they need from leadership and asks clearly (Slide 9)
 
-The framework comparison slide and scratch-build slide are particularly important — they demonstrate that I evaluated alternatives and made an informed engineering decision, not just "I followed a tutorial."
+This is what separates an engineer who built a POC from an engineer who's ready to lead a strategic initiative.
 
 Begin.
 
 
 END COPYING HERE ⬆️
 
-
 Tu Yeh Kar — Step By Step
-
+Pehle yeh document save kar (review + refined Phase 2 + 9-slide flow ek jagah hai)
 
 VS Code khol overwatch-eval-service/ project mein
+
 Claude Code panel open kar
-Yeh entire prompt (Start se End tak) copy kar aur paste kar Claude Code mein
-Claude Code tera codebase padhega, then 9 slides generate karega
-Output ek markdown file mein milega
-Tu uss file ko padh, refine kar agar kuch tweak chahiye
-Phir uss content se PPT bana — sirf 9 slides
+
+START se END tak ka prompt copy-paste kar Claude Code mein
+
+Claude Code tera codebase padhega, then 9 slides generate karega (about 8000 words)
+
+Output markdown file mein milega — review kar
+
+Phir uss content se PPT bana — 9 slides
+
+
+Yeh 9-Slide Flow Director Ko Kyun Impress Karega
+Slide 1-2: Strategic framing + multi-disciplinary thinking → Director ko dikha tu sirf coder nahi, systems thinker hai
+
+Slide 3-4: Trade-off analysis + framework benchmarking → Director ko dikha tu rigorous decision-making karta hai
+
+Slide 5-6: Real implementation + platform internals → Director ko dikha tu execution kar sakta hai aur platform samajhta hai
+
+Slide 7: Judge validation (the differentiator) → Director ko dikha tu research-grade rigor apply karta hai — yeh slide tujhe stand out karayegi
+
+Slide 8: Phased roadmap with risks → Director ko dikha tu forward-thinking hai aur honest about risks hai
+
+Slide 9: Clear asks → Director ko dikha tu leadership-ready hai — ask karna jaanta hai
+
+
+Final Honest Note
+Bhai, Slide 7 is your secret weapon. Most engineers eval service build karte hain aur scores publish karte hain. Tu validate karta hai validator ko — yeh research-grade thinking hai jo Director ne shayad bahut kam dekha hoga.
+
+Director ke saamne baith ke jab tu Phase 2 explain karega — generator-judge decoupling, difficulty tiers, Cohen's kappa, bootstrap CIs — woh realize karega ki tu junior nahi hai, tu senior-track engineer hai.
+
+Yeh confidence aur clarity ke saath bol — "This is how we ensure our F1 numbers are defensible to anyone, including external audits."
+
+That sentence alone changes the conversation.
 
 
 
-Kyun Yeh Approach Director Ko Impress Karegi
-
-Reason 1: Multi-disciplinary depth (Slides 2-4)
-Most engineers ek perspective se baat karte hain. Tu 4 perspectives blend kar raha hai — ML, DL, GenAI, Backend — yeh sirf senior engineers karte hain.
-
-Reason 2: Landscape awareness (Slides 5-6)
-Tu sirf use nahi kar raha — tu alternatives jaanta hai. Arize internals, RAGAS, DeepEval. Yeh director ko dikhata hai ki tu informed engineering decision le raha hai, blind copy-paste nahi.
-
-Reason 3: Engineering maturity (Slide 7)
-"We considered building from scratch and chose not to" — yeh statement bahut powerful hai. Junior engineers blindly use kar lete hain frameworks. Senior engineers consciously skip karte hain scratch-build.
-
-Reason 4: Production thinking (Slide 8)
-Architecture + reliability + integration choices — yeh production-grade engineering thinking dikhata hai.
-
-Reason 5: Strategic positioning (Slide 9)
-Roadmap + ask + alignment with COO strategy — director ko dikhega ki tu future-thinking aur org-aware hai.
-
-Reason 6: Prepared for hard questions
-Har slide ke saath challenging Q&A hai — director ne tough question puchha, tu confident jawab dega. Yeh impression banaata hai senior leadership pe.
-
-
-Backup Plan
-
-Agar Claude Code kuch part incomplete chhode ya [VERIFY: ...] markers chhode — woh good sign hai, kyunki Claude honestly bata raha hai "yeh detail tere code mein nahi hai, confirm kar."
-
-Tu uss verify section ko khud fill kar de. Yeh ensures content accurate rehta hai — galat info director ke saamne credibility kill kar deti hai.
-
-
-Specific Things To Highlight During Live Demo
-
-When you present, especially these slides will have impact:
-
-Slide 6 Power Move
-
-When showing the framework comparison matrix, pause and let it sink in. Then say:
-
-
-"I want to be transparent — we evaluated four options. We chose Arize because of WF-specific deployment context, not because it's universally the best. Different context might warrant a different choice."
-
-
-
-This positions you as an engineer with judgment, not a fanboy.
-
-Slide 7 Power Move
-
-When showing the scratch-build architecture, emphasize what we avoided:
-
-
-"This is what we considered building. Twelve to eighteen months of engineering, three engineers, ongoing maintenance overhead. Instead, we got production-grade evaluation in a week. That's the leverage we created."
-
-
-
-This shows ROI thinking — directors love this.
-
-Slide 9 Power Move
-
-End with the strategic ask. Don't be shy. Specifically say:
-
-
-"To accelerate Phase 1, I need three things from leadership: EDITOR access to Tachyon Overwatch, confirmation of the target agent endpoint, and alignment on integration approach."
-
-
-
-Directors respect engineers who know what they need and ask clearly.
+Aage badh. Yeh prompt use kar, output dekh, fir refine karenge agar kuch tweak chahiye.
 
