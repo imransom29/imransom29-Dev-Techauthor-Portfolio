@@ -1,3 +1,6 @@
+![Uploading image.png…]()
+
+
 in this workspace. It is a trace-driven evaluation service that integrates with Tachyon Overwatch (Arize Phoenix deployed at Wells Fargo).
 
 I need to present this work to my Technology Director. The Director is senior and sees many engineering initiatives. To stand out, I want to explain my work from four engineering lenses simultaneously:
