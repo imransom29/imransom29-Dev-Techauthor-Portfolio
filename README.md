@@ -1,1 +1,52 @@
-muje ek chewzz samjh nhi arahi he me q dataset usenhi krta hu Evaluation me Arize AI platofmr mr tuje mene pic dia tha jo traces adn span he vaha kya vo already used ho raha he koi dataaset piche qnki mere doikh mnhi raha he me kese pata karu koi dataset source he kya in input out put kle piche?
+## Visual Content
+
+**Center — Phoenix architecture diagram:**
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│   AI AGENTS                                                          │
+│   (LangGraph, etc.)                                                  │
+│         │                                                            │
+│         │ OpenInference instrumentation                              │
+│         │ (Arize's semantic conventions for LLM tracing)             │
+│         ▼                                                            │
+│   ┌───────────────────────────┐                                      │
+│   │  OTLP Protocol            │                                      │
+│   │  (OpenTelemetry standard) │                                      │
+│   └─────────────┬─────────────┘                                      │
+│                 │                                                    │
+│                 ▼                                                    │
+│   ╔════════════════════════════════════════════════════════════╗    │
+│   ║                                                             ║    │
+│   ║         TACHYON OVERWATCH (= ARIZE PHOENIX)                 ║    │
+│   ║                                                             ║    │
+│   ║   ┌──────────────────┐   ┌─────────────────────────────┐  ║    │
+│   ║   │  COLLECTOR        │──▶│  STORAGE LAYER              │  ║    │
+│   ║   │  (Receives spans) │   │  (Postgres / columnar)      │  ║    │
+│   ║   └──────────────────┘   └────────────┬────────────────┘  ║    │
+│   ║                                        │                    ║    │
+│   ║                                        ▼                    ║    │
+│   ║   ┌────────────────────────────────────────────────┐      ║    │
+│   ║   │  EVALUATION ENGINE (phoenix.evals)             │      ║    │
+│   ║   │  • Prompt Templates (HALLUCINATION, etc.)      │      ║    │
+│   ║   │  • Rails (output constraints)                   │      ║    │
+│   ║   │  • Classifier orchestrator                      │      ║    │
+│   ║   └────────────────────────────────────────────────┘      ║    │
+│   ║                            │                                ║    │
+│   ║                            ▼                                ║    │
+│   ║   ┌────────────────────────────────────────────────┐      ║    │
+│   ║   │  ANNOTATION LAYER                              │      ║    │
+│   ║   │  (Eval results attached to spans)              │      ║    │
+│   ║   └────────────────────────────────────────────────┘      ║    │
+│   ║                            │                                ║    │
+│   ║                            ▼                                ║    │
+│   ║   ┌────────────────────────────────────────────────┐      ║    │
+│   ║   │  UI LAYER                                      │      ║    │
+│   ║   │  (Spans + annotations rendered together)       │      ║    │
+│   ║   └────────────────────────────────────────────────┘      ║    │
+│   ║                                                             ║    │
+│   ╚════════════════════════════════════════════════════════════╝    │
+│                                                                      │
+└────────────────────────────────────────────────────────────────────┘
+```
