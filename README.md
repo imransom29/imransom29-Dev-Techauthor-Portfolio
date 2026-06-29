@@ -1,3 +1,7 @@
+<img width="1128" height="1171" alt="WhatsApp Image 2026-06-29 at 15 39 14" src="https://github.com/user-attachments/assets/5fbdf742-65de-4285-85cc-eaf591f7bd8d" />
+
+
+
 PROBLEM STATEMENT : 
 Today, our AI systems generate thousands of interactions every single day. At that scale, you simply cannot ask humans to manually check every response. It is not practical.
 Second, without automation, we have no reliable way to catch hallucinations, wrong answers, or harmful outputs in production. Things slip through.
