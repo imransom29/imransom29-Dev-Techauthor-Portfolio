@@ -1,361 +1,372 @@
-THE THREE CHARACTERS (Each gets 20 seconds)
+Create a new Remotion scene component called WhoUsesItScene.tsx inside src/scenes/ folder. This scene runs for 1800 frames (60 seconds at 30 fps) and shows how three distinct enterprise workflows integrate with the Supervisor Evaluation Service. No cartoon characters — the visuals are entirely tool interfaces, code snippets, and workflow diagrams styled to feel like screenshots of real production systems.
 
-To make this scene memorable, we're creating three distinct, likeable personas. These aren't stock characters — they have names, quirks, and specific pain points. Audience will remember them and relate.
-
-Character 1: Priya, MLOps Engineer (0:00-0:20)
+Each workflow gets 20 seconds and follows the same 4-part structure:
 
 
-Vibe: Sharp, busy, always in Slack/Terminal, coffee in hand
-Personality trait: Loves clean dashboards, hates surprise pages at 2 AM
-Style: Wearing dark hoodie, glasses, tech-forward
-Color signature: Cyan/blue tones (#00d4ff)
+Frames 0-90 (3s): Role header + tool stack reveal
+Frames 90-330 (8s): Pain point in current workflow
+Frames 330-510 (6s): Integration with Supervisor Evaluation Service
+Frames 510-600 (3s): Concrete benefit / outcome
 
 
-Character 2: Arjun, Data Scientist (0:20-0:40)
-
-
-Vibe: Curious, analytical, always tweaking experiments
-Personality trait: Excited about new models, cautious about deploying them
-Style: Casual shirt, laptop stickers, has 15 browser tabs open
-Color signature: Purple/violet tones (#a78bfa)
-
-
-Character 3: Sara, Compliance Lead (0:40-1:00)
-
-
-Vibe: Detail-oriented, calm, asks the hard questions
-Personality trait: Needs everything documented and auditable
-Style: Business casual, clipboard/tablet, professional but warm
-Color signature: Green/gold tones (#4ade80, #facc15)
-
-
-
-PART 1 — COPILOT ANIMATION PROMPT
-
-Paste this prompt into VSCode Copilot (Agent mode) inside your existing Remotion project:
-
-
-Create a new Remotion scene component called WhoUsesItScene.tsx inside src/scenes/ folder. This scene runs for 1800 frames (60 seconds at 30 fps) and introduces three relatable character personas who use the Supervisor Evaluation Service in their daily work.
-
-The visual language should feel like modern flat-illustration character animation — think Duolingo, Notion, or Linear.app style. Characters are stylized (not photorealistic), warm colors, expressive, and immediately readable.
-
-Each character gets 20 seconds with a consistent structure:
-
-
-3 seconds: Character reveal + name/role
-6 seconds: Their pain point (what they struggle with)
-8 seconds: How they use the Supervisor Evaluation Service
-3 seconds: The outcome + emotional payoff
-
-
-Overall Scene Design
+Global Scene Design
 
 Background:
 
 
-Deep navy (#0a0e27) base with soft warm accent gradients per character
-Very subtle animated dots/particles in the background (feels alive, not empty)
-Each character has their own "office environment" background hint (screens, coffee cup icon, plants) — created with simple geometric shapes
+Deep navy (#0a0e27) base — no distractions
+Very subtle grid overlay (5% opacity cyan lines forming faint circuit texture)
+Left border ribbon: 4px thick vertical bar showing the workflow's signature color (updates per workflow)
 
 
 Typography:
 
 
-Inter font (imported via @remotion/google-fonts/Inter)
-Character name: 900 weight, 64px
-Role/title: 400 weight, 28px, muted color
-Speech/thought bubbles: 500 weight, 22-26px
-Description text: 400 weight, 20-24px
+Inter font (imported via @remotion/google-fonts/Inter) for headers
+JetBrains Mono for code snippets and terminal output (import via @remotion/google-fonts/JetBrainsMono)
+Headers: 900 weight, 56-64px
+Body: 400 weight, 22-26px
+Code: 400 weight, 18-20px monospace
+All text should feel like it belongs on a production dashboard — clean, dense, no wasted space
 
 
-Character illustration style:
+Color palette (add to constants.ts):
 
 
-Simple geometric shapes for bodies (rounded rectangles, circles)
-Expressive faces with simple line-drawn features
-3-4 color palette per character
-NO complex textures — clean, flat, modern
-Slight bounce/idle animation on character (like they're breathing)
-Use <div> + CSS transforms and gradients — no need for external SVG unless needed
-If SVG is easier, use React SVG components with animated attributes
+MLOPS_CYAN: '#00d4ff' — Workflow 1
+RESEARCH_PURPLE: '#a78bfa' — Workflow 2
+RISK_AMBER: '#facc15' — Workflow 3
+SUCCESS_GREEN: '#4ade80'
+ERROR_RED: '#ff6b6b'
+TERMINAL_BG: '#0d1117' — GitHub-style dark for code panels
+CARD_BG: 'rgba(255, 255, 255, 0.03)'
+BORDER_SUBTLE: 'rgba(255, 255, 255, 0.08)'
 
 
+Transitions between workflows:
 
-Character 1: Priya, MLOps Engineer (Frames 0-600)
 
-Frame 0-90 (3 seconds): Character reveal
+Clean vertical wipe (top-to-bottom) with signature color, 15-frame duration
+Previous workflow content fades to 15% opacity as new one enters
 
 
-Fade in on a warm cyan-gradient background (top-right corner has a subtle glow)
-Priya slides in from the left with a spring animation (damping: 10)
-She's illustrated as:
 
-Circular head with short bob haircut
-Round glasses (thin cyan frames)
-Dark hoodie with a small "MLOps" badge
-Sitting at a desk with 2 monitors visible in background (simple rectangles)
-Coffee mug beside her (with steam animation — 3 curved lines rising)
+WORKFLOW 1: MLOps Engineering (Frames 0-600, 20 seconds)
 
+Frame 0-90 (3 seconds): Role header + tool stack reveal
 
+Layout:
 
-Below her, name card animates in:
 
-"PRIYA" (large, bold, white)
-"MLOps Engineer" (smaller, muted cyan)
-"Wells Fargo · WIMT" (tiny, gray)
+Top-left corner: Small monospace label "01 / MLOPS ENGINEERING" (cyan color, 24px, letter-spacing 2px)
+Center-left: Large heading "MLOps Engineering" (56px, white)
+Below heading: Subtitle "Preventing bad models from reaching production" (22px, muted)
+Right side: A "tool stack" panel showing 4 tool logos as small cards (each card has icon + name):
 
+Harness CD (icon: pipeline arrows)
+OpenShift (icon: red hat shape)
+JFrog Artifactory (icon: frog silhouette in green)
+Grafana (icon: orange flame with rings)
 
 
-She has a soft idle animation (subtle 2px up-down movement, 60-frame loop)
 
+Cards animate in with 20-frame staggered fade + slight slide from right
+Use lucide-react icons where actual logos aren't available: Workflow, Container, Package, LineChart
 
-Frame 90-270 (6 seconds): The pain point
 
+Frame 90-330 (8 seconds): Pain point visualization
 
-A thought bubble emerges from Priya's head (soft rounded speech bubble style)
-Inside the bubble, text types out (typewriter effect):
+Layout: Split into two vertical panels
 
-"Every model update, I hold my breath."
+Left panel (60% width): A recreated Harness pipeline UI mockup showing:
 
 
+Header bar: "Deployment Pipeline — supervisor-agent-service"
+5 pipeline stages horizontally connected by arrows:
 
-After bubble is complete, a small "😰" emoji or worry icon appears next to it
-Then Priya's face subtly shifts (frown expression) — animate by swapping the mouth curve
-Below, in a lower banner, three small worry icons appear (staggered fade-in):
+Build ✓ (green)
+Test ✓ (green)
+Push to Artifactory ✓ (green)
+Deploy to Dev ✓ (green)
+Deploy to Prod — this stage pulses red with warning icon
 
-"Will hallucinations spike?" (with alert triangle icon)
-"Will latency explode?" (with clock icon)
-"Will users complain?" (with message icon)
 
 
+Below the pipeline, a red alert banner slides in:
 
 
+  ⚠ ALERT: Post-deployment hallucination rate: 12.4%
+  ⚠ ALERT: 47 user complaints in 2 hours
 
-Frame 270-510 (8 seconds): How she uses it
 
+The banner has a subtle red pulse animation
 
-Thought bubble fades out
-Priya's expression brightens (smile animation — swap mouth curve)
-A laptop screen materializes in front of her, showing the Supervisor Evaluation Service dashboard mockup
-On the screen (which should be animated):
 
-"Model Version Comparison" panel
-Two columns: "v1.2 (current)" vs "v1.3 (new)"
-Metrics counter animating up:
+Right panel (40% width): Terminal-style panel with real error messages appearing (typewriter effect):
 
-Hallucination rate: 3.2% → 3.4% (green tick)
-Latency: 1.4s → 1.5s (green tick)
-Cost: $0.008 → $0.008 (green tick)
+> Model deployed at 14:22 UTC
+> Overwatch trace count: 1,247
+> Hallucination detected: 12.4% (baseline: 3.1%)
+> ROLLBACK INITIATED at 14:36 UTC
+> Downtime: 14 minutes
+> Business impact: HIGH
 
+Below all this, in the bottom center, a bold statement appears at frame 240:
 
 
+"The problem: hallucinations detected AFTER deployment."
+(font: 32px, white, subtle fade-in)
 
 
 
-Priya's speech bubble appears (different color — cyan tint):
+Frame 330-510 (6 seconds): The integration
 
-"I run the eval before every deploy. [...] Now I sleep."
+Transition: Left panel visuals stay, but the pipeline reorganizes to show a new stage inserted between "Deploy to Dev" and "Deploy to Prod".
 
+The new stage animates in with a purple glow:
 
 
-Bottom text (fades in near end): "Model validation → 3 minutes"
+Stage 4.5: Supervisor Evaluation (purple, glowing)
+Small text below stage: "Pre-production LLM validation"
 
 
-Frame 510-600 (3 seconds): The emotional payoff
+Right panel updates with new terminal output:
 
+> Pre-deployment evaluation triggered
+> Fetching 100 production spans via Overwatch...
+> Judging with Claude 4.5 Sonnet...
+> Verdict: HALLUCINATION RATE 3.2% ✓
+> Threshold: <5% PASS
+> Pipeline PROCEEDING to production
 
-Priya visibly relaxes (idle animation slows)
-She takes a sip of coffee (arm animates up, mug moves, then down)
-Above her head, a peaceful "💤" or "✓" icon glows softly
-Bottom banner text: "No more surprise pages at 2 AM."
-Fade to black for 15 frames (character transition)
+At frame 420, a code snippet card appears at bottom of screen showing the actual Harness pipeline YAML integration:
 
+yaml- stage: supervisor-eval
+  when: pre-production
+  action: evaluate
+  threshold: hallucination_rate < 0.05
+  block_on_failure: true
 
+(displayed in a JetBrains Mono panel with syntax highlighting — YAML keys in cyan, values in green)
 
-Character 2: Arjun, Data Scientist (Frames 600-1200)
+Frame 510-600 (3 seconds): The outcome
 
-Frame 600-690 (3 seconds): Character reveal
 
+All visuals dim to 30% opacity
+Center screen: Large green checkmark icon (Lucide CheckCircle2) with pulse animation
+Below: Bold text: "Bad models blocked before production."
+Small text: "Reduced mean-time-to-detection from hours to seconds"
+Bottom-right: Metrics card:
 
-Fade in on warm purple-gradient background
-Arjun slides in from the right with spring animation
-He's illustrated as:
 
-Circular head with curly hair (small curved lines on top)
-Casual t-shirt with a small graph icon on the chest
-Laptop open in front of him with many tabs (small colored rectangles at top)
-Behind him: a small potted plant, whiteboard with equations (represented by simple lines and Greek letters)
+  ⚡ 47 seconds  →  average eval time
+  🛡  0 rollbacks →  since integration
 
 
+WORKFLOW 2: Model Research (Frames 600-1200, 20 seconds)
 
-Name card:
+Transition (Frames 600-615): Purple vertical wipe
 
-"ARJUN"
-"Data Scientist"
-"Wells Fargo · WIMT GenAI"
+Frame 615-705 (3 seconds): Role header + tool stack reveal
 
+Layout:
 
 
+Top-left: "02 / MODEL RESEARCH" (purple, 24px monospace)
+Center-left: Large heading "Model Research"
+Subtitle: "Comparing models on production data, not benchmarks"
+Right side tool stack cards:
 
+VS Code / Jupyter (icon: code brackets)
+Arize Phoenix (icon: phoenix bird silhouette, use Bird from lucide-react if needed)
+Tachyon Overwatch (WF logo placeholder — small "T" in cyan)
+Python (icon: snake or FileCode)
 
-Frame 690-870 (6 seconds): The pain point
 
 
-Arjun looks curious/excited (raised eyebrows animation)
-Thought bubble emerges:
 
-"I want to try Claude 4.5. [...] But is it actually better?"
 
+Frame 705-945 (8 seconds): Pain point visualization
 
+Layout: Two-panel Jupyter notebook interface
 
-Beside him, 3 model comparison cards appear (staggered):
+Top panel: A realistic Jupyter notebook cell with syntax-highlighted Python code appearing (typewriter effect):
 
-"GPT-4" (gray)
-"Gemini 2.5" (yellow)
-"Claude 4.5" (purple, glowing) — Arjun is looking at this one
+python# Question: Is Claude 4.5 actually better than Gemini 2.5?
 
+# Traditional approach:
+run_public_benchmark("MMLU")  # Score: 88.7 vs 85.2
+run_public_benchmark("HellaSwag")  # Score: 92.1 vs 89.3
 
+Bottom panel: A frustrated comment appears next to the code (as an inline notebook markdown cell):
 
-His expression shifts to uncertainty (small "?" appearing above his head)
 
+"But public benchmarks don't reflect OUR customer questions.
+OUR domain. OUR context. OUR risk tolerance."
 
-Frame 870-1110 (8 seconds): How he uses it
 
 
-Arjun clicks something on his laptop (small mouse cursor animation)
-The evaluation dashboard materializes above his laptop, floating
-Dashboard shows a live comparison chart:
+Then a red-highlighted callout at the bottom:
 
-X-axis: 100 test cases
-Y-axis: Hallucination score
-Two colored lines drawing themselves left-to-right:
+❌ Benchmark score ≠ Production performance
 
-Gemini 2.5: bouncy line, averaging around 7-8%
-Claude 4.5: smoother line, averaging around 3-4%
+At frame 840, transition text appears:
 
 
+"The problem: research decisions based on benchmarks that don't match reality."
 
 
 
+Frame 945-1125 (6 seconds): The integration
 
-As the lines complete, big text appears:
+Notebook clears and rewrites with new code (typewriter effect):
 
-"Claude 4.5: -59% hallucination"
+pythonfrom supervisor_eval import compare_models
 
+# Compare models on YOUR actual production traces
+results = compare_models(
+    models=["gemini-2.5", "claude-4-5-sonnet"],
+    traces_from="overwatch",
+    trace_count=500,
+    date_range="last_7d"
+)
 
+results.push_to_arize()  # View in Phoenix UI
 
-Arjun's speech bubble:
+At frame 1020, an Arize Phoenix UI mockup slides in from the right side:
 
-"I compare models on real production data. [...] No guesswork."
 
+Header: "Arize Phoenix — Model Comparison"
+Two horizontal bar charts stacked:
 
+Gemini 2.5: Hallucination rate 7.8% (yellow-orange bar, animates left-to-right)
+Claude 4.5: Hallucination rate 3.2% (green bar, animates left-to-right, shorter)
 
-Bottom text: "Model comparison → data-driven decision"
 
 
-Frame 1110-1200 (3 seconds): The emotional payoff
+Below charts, a table showing:
+MetricGemini 2.5Claude 4.5ΔHallucination %7.8%3.2%-59%Avg latency1.2s1.4s+17%Cost / eval$0.006$0.009+50%
 
 
-Arjun looks triumphant (fist pump animation — small motion of arm going up)
-Above him, sparkle/star icons animate
-Bottom banner: "Every experiment, backed by evidence."
-Fade to black for 15 frames
+Green highlight on "Hallucination %" row
+Small badge: "500 real production traces"
 
 
+Frame 1125-1200 (3 seconds): The outcome
 
-Character 3: Sara, Compliance Lead (Frames 1200-1800)
 
-Frame 1200-1290 (3 seconds): Character reveal
+Visuals dim
+Center: Green checkmark
+Bold text: "Every experiment, backed by production data."
+Small text: "Directly integrated with Arize Phoenix"
+Metrics card:
 
 
-Fade in on warm green-gold gradient background
-Sara slides in from below with spring animation (different direction feels intentional)
-She's illustrated as:
+  🔬 500 traces   → per comparison
+  📊 Live in Arize → results streamed
 
-Circular head with medium-length hair
-Blazer over a simple top
-Clipboard/tablet in hand
-Behind her: a filing cabinet (rectangle with drawer lines), a small "✓ AUDIT" stamp on wall
 
+WORKFLOW 3: Model Risk & Governance (Frames 1200-1800, 20 seconds)
 
+Transition (Frames 1200-1215): Amber vertical wipe
 
-Name card:
+Frame 1215-1305 (3 seconds): Role header + tool stack reveal
 
-"SARA"
-"Compliance Lead"
-"Wells Fargo · Risk & Governance"
+Layout:
 
 
+Top-left: "03 / MODEL RISK & GOVERNANCE" (amber, 24px monospace)
+Center-left: Large heading "Model Risk & Governance"
+Subtitle: "Auditable evidence for SR 11-7 compliance"
+Right side tool stack cards:
 
+Confluence (icon: page/document)
+ServiceNow (icon: Ticket)
+MRM Dashboard (icon: Shield)
+Audit Reports (icon: FileText)
 
 
-Frame 1290-1470 (6 seconds): The pain point
 
 
-Sara has a serious but calm expression
-Thought bubble emerges:
 
-"When auditors ask 'how do you know your AI is safe?' [......] I need proof."
+Frame 1305-1545 (8 seconds): Pain point visualization
 
+Layout: Simulate an incoming audit request
 
+Top panel: An email/ticket UI mockup:
 
-Around her, official-looking document icons animate in (small rectangles with lines):
+From: Federal Reserve MRM Examiner
+Subject: SR 11-7 — Model Validation Evidence Request
 
-"SR 11-7 Model Risk"
-"EU AI Act"
-"CFPB Guidelines"
+For your production AI advisor system, please provide:
+1. Evidence of continuous hallucination monitoring
+2. Traceable audit trail for all model changes
+3. Third-party validation of model outputs
+4. Documentation of testing methodology
 
+Response required within 15 business days.
 
+Bottom panel: A frantic Confluence/SharePoint search interface with red X marks appearing on multiple results:
 
-These documents form a small stack that appears heavy (subtle downward movement)
 
+❌ "Model_Validation_Report_Q1_2025.pdf" — outdated
+❌ "Screenshot_evaluation_dashboard.png" — not auditable
+❌ "Email_from_data_science_team.msg" — informal
+❌ Manual monthly reports — labor-intensive
 
-Frame 1470-1710 (8 seconds): How she uses it
 
+At frame 1440, transition text:
 
-Sara's expression softens (she has a solution)
-A compliance report materializes on her tablet
-Report shows:
 
-"Evaluation Audit Trail" header
-Timestamp: "2026-07-06 14:23:45"
-Model: "Claude 4.5 Sonnet"
-Test cases: "100 production traces"
-Verdict: "PASSED — 3.2% hallucination"
-"Full traceability: 100/100 spans linked"
-"MRM-compliant ✓" badge
+"The problem: no auditable trail for AI decisions."
 
 
 
-Sara's speech bubble:
+Frame 1545-1725 (6 seconds): The integration
 
-"Every evaluation is logged. [...] Every verdict is traceable. [...] I have the evidence."
+Visuals clear. An MRM Compliance Dashboard interface materializes:
 
+Header: "Model Risk Management — Audit Trail"
 
+Below header, a professional table appears with rows animating in (staggered):
 
-Bottom text: "Audit-ready reports → auto-generated"
+TimestampModelTrace IDVerdictHallucinationAuditor2026-07-06 14:23claude-4-5ovw_a3f21✓ PASSED3.2%System2026-07-06 12:15claude-4-5ovw_b7c88✓ PASSED2.8%System2026-07-05 16:44gemini-2.5ovw_x9d02⚠ REVIEW6.1%System2026-07-05 09:20gemini-2.5ovw_p4e56✓ PASSED4.2%System
 
+Each row has a small "View Trace" button that pulses briefly (suggests one-click drill-down to Overwatch span).
 
-Frame 1710-1800 (3 seconds): The emotional payoff
+Below the table:
 
 
-Sara nods (small head movement, then still)
-She smiles subtly
-Above her head, a "🛡️" shield icon appears with a green checkmark
-Bottom banner: "Compliance without the chaos."
-Final closing beat (last 20 frames):
+Green badge: "SR 11-7 Compliant Report Ready"
+Button: "📄 Export Full Audit Package"
 
-All three characters appear in a horizontal row at the bottom (small size)
-Above them, unifying text scales in:
 
-"One platform. [...] Three humans. [...] Zero blind spots."
+Small footer text: "Every evaluation. Every trace. Every timestamp. Signed and hashed."
 
+Frame 1725-1800 (3 seconds): The outcome + Scene closing
 
 
+Visuals dim
+Center: Green shield icon (Lucide ShieldCheck)
+Bold text: "Audit-ready by default."
+Small text: "Full traceability from verdict to source span"
 
 
+Closing beat (last 30 frames = 1 second):
 
 
+All three workflow color-bars appear as thin horizontal stripes at the top of screen (cyan / purple / amber)
+Below them, unifying text scales in with spring animation:
+
+
+
+"One platform. Three workflows. Zero friction."
+
+
+
+(text: 64px, white, bold; scale from 0.9 to 1.0 with spring damping 12)
+
+Small footer under the closing text: "Supervisor Evaluation Service · Enterprise-grade LLM evaluation" (18px, muted)
 
 
 Technical Requirements
@@ -363,48 +374,28 @@ Technical Requirements
 
 Component name: WhoUsesItScene
 Export as default
-Use useCurrentFrame() for all timing
-Use interpolate() with extrapolateRight: 'clamp' for smooth animations
-Use spring() for character entrance animations (damping: 12, mass: 1)
-All colors from constants.ts (add if needed):
-
-PRIYA_CYAN: '#00d4ff'
-ARJUN_PURPLE: '#a78bfa'
-SARA_GREEN: '#4ade80'
-WARM_GOLD: '#facc15'
-
+Use useCurrentFrame() and useVideoConfig() for all timing
+Use interpolate() with extrapolateRight: 'clamp' for opacity and position
+Use spring() for entrance animations (damping: 12, mass: 1)
+All colors from constants.ts
+Use lucide-react icons: Workflow, Container, Package, LineChart, Bird, FileCode, Ticket, Shield, FileText, ShieldCheck, CheckCircle2, AlertTriangle, TrendingDown
+Terminal panels should have TERMINAL_BG background with subtle 1px border in BORDER_SUBTLE
+Code panels use JetBrains Mono font
+All UI mockups should look like production interfaces — clean lines, consistent padding (16px card padding, 8px between elements)
 
 
-Use lucide-react icons: Coffee, AlertTriangle, Clock, MessageSquare, CheckCircle2, Sparkles, FileText, Shield, BarChart3
-Add subtle idle animations to characters (breathing effect via 2-4px vertical translation on 60-frame loop)
-Add subtle sound design placeholder comments (e.g., // SFX: soft pop for character reveal at frame 0)
-
-
-Reusable Sub-Components (Create)
+Reusable Sub-Components
 
 Add to src/components/:
 
 
-Character.tsx — reusable character illustration (props: name, role, color, expression, position)
-SpeechBubble.tsx — reusable speech bubble with typewriter text animation (props: text, delay, position, color)
-ThoughtBubble.tsx — same as SpeechBubble but with the dotted-cloud style
-DashboardMockup.tsx — reusable mini-dashboard visualization (reuse from other scenes if exists)
+WorkflowHeader.tsx — reusable role header with monospace label + heading + subtitle (props: number, role, subtitle, color)
+ToolStackCards.tsx — reusable tool stack card row (props: tools array with name+icon+color, staggerDelay)
+TerminalPanel.tsx — reusable terminal-style code panel (props: lines array, delay, showCursor)
+MockupCard.tsx — reusable rounded card container for UI mockups (props: title, children, color, glowIntensity)
+CodePanel.tsx — syntax-highlighted code display (props: language, code, delay)
+AnimatedTable.tsx — table with staggered row animations (props: headers, rows, colorHighlights)
 
-
-Character Illustration Approach
-
-Since we don't have designer assets, use CSS + emoji + SVG shapes creatively:
-
-
-Head: Circle with gradient background (skin tone: #F5D6C2, #E5B08F, #C08863)
-Body: Rounded rectangle in character's clothing color
-Face features: Simple SVG paths for eyes (dots), eyebrows (small curves), mouth (curved lines that swap for expressions)
-Hair: Curved SVG shapes or simple emoji reference (💇 style but as geometry)
-Accessories: Simple SVG shapes for glasses (two circles connected), coffee mug (rectangle + curved handle)
-Backgrounds: Gradient divs + geometric shape overlays
-
-
-If character illustration gets too complex, use these fallback illustrations from undraw.co style (open-source flat illustrations you can inspire from — but generate original with code).
 
 Integration
 
@@ -414,128 +405,115 @@ tsx<Sequence from={<PREVIOUS_END_FRAME>} durationInFrames={1800}>
   <WhoUsesItScene />
 </Sequence>
 
-Confirm the scene renders without errors, and share a preview.
+Confirm the scene renders without errors and preview at 30fps.
 
 
-PART 2 — VOICE-OVER SCRIPT (60 SECONDS, PERFECTLY SYNCED)
+PART 2 — VOICE-OVER SCRIPT (60 SECONDS)
 
 
 Recording tips:
 
 
-Total: 60 seconds. Aim for ~150 words (natural pace)
-Tone: Warm, storytelling, conversational. This is different from previous scenes — less "product marketing," more "meet the people."
-Recommended: Record each character block (20 seconds) separately for cleaner edits
-Change tone slightly per character:
+Total: 60 seconds. ~140 words at professional pace.
+Tone: Bloomberg news anchor meets McKinsey partner. Confident, informative, no drama.
+Record 3 blocks of 20 seconds each for easier retakes.
+No excessive pauses. Corporate rhythm — measured but not slow.
+Emphasize BOLD words with subtle weight, not volume shifts.
+Pause markers: [.] = short 200ms; [..] = 400ms
 
-Priya: Empathetic, tired-but-hopeful energy
-Arjun: Curious, energetic
-Sara: Calm, confident, reassuring
 
 
 
-Pause markers: [...] = short 300ms; [......] = longer 700ms
 
+[0:00 – 0:20] Workflow 1: MLOps Engineering
 
+[0:00] (As the "01 / MLOPS ENGINEERING" header and tool stack appears)
 
 
+"For MLOps engineering. [.] The team responsible for deploying models to production."
 
-[0:00 – 0:20] Priya — MLOps Engineer
 
-[0:00] (As Priya slides in and her name appears)
 
+[0:05] (As the Harness pipeline and red alert visualize the pain)
 
-"This is Priya. [...] She runs MLOps at Wells Fargo."
 
+"Today, [.] hallucinations are detected only after users complain. [..] Rollbacks happen in hours."
 
 
-[0:04] (As her thought bubble appears)
 
+[0:11] (As the new "Supervisor Evaluation" stage animates into the pipeline)
 
-"Every time a model updates, [......] she used to worry."
 
+"The Supervisor Evaluation Service integrates directly into Harness pipelines [.] as a pre-production gate. [..] Failed evaluations block the deployment."
 
 
-[0:09] (As the three worry icons appear)
 
+[0:19] (As the "Bad models blocked" outcome appears)
 
-"Will hallucinations spike? [...] Will users complain? [...] Will she get paged at 2 AM?"
 
+"Bad models never reach production."
 
 
-[0:15] (As her laptop shows the eval dashboard)
 
 
-"Now, she runs an evaluation — [...] before every deploy."
+[0:20 – 0:40] Workflow 2: Model Research
 
+[0:20] (As the "02 / MODEL RESEARCH" header appears)
 
 
-[0:19] (As the payoff text appears)
+"For model research. [.] The team evaluating new models and prompts."
 
 
-"She sleeps."
 
+[0:25] (As the Jupyter notebook shows benchmark scores + frustrated markdown comment)
 
 
+"Public benchmarks don't reflect production reality. [..] Different domain. [.] Different customers. [.] Different risks."
 
-[0:20 – 0:40] Arjun — Data Scientist
 
-[0:20] (As Arjun slides in and his name appears)
 
+[0:32] (As the new Python code + Arize comparison appears)
 
-"This is Arjun. [...] Data scientist. [...] Endlessly curious."
 
+"A single Python call [.] compares any two models on real production traces. [..] Results stream directly into Arize Phoenix."
 
 
-[0:25] (As the three model comparison cards appear)
 
+[0:39] (As the "Every experiment" outcome appears)
 
-"He wants to try the newest model. [...] Claude 4.5. [...] GPT-5. [......] But is it really better?"
 
+"Decisions backed by production data."
 
 
-[0:33] (As the comparison chart draws itself)
 
 
-"He runs both models on the same production traces. [...] Side by side. [...] No guesswork."
+[0:40 – 1:00] Workflow 3: Model Risk & Governance
 
+[0:40] (As the "03 / MODEL RISK & GOVERNANCE" header appears)
 
 
-[0:39] (As the fist-pump animation happens)
+"For model risk and governance. [.] The team accountable for regulatory compliance."
 
 
-"Data-driven decisions."
 
+[0:46] (As the SR 11-7 audit request email and failed searches appear)
 
 
+"Regulators demand auditable evidence. [..] Screenshots and manual reports don't hold up."
 
-[0:40 – 1:00] Sara — Compliance Lead
 
-[0:40] (As Sara slides in and her name appears)
 
+[0:52] (As the MRM audit trail table appears)
 
-"And this is Sara. [...] She keeps our AI compliant."
 
+"Every evaluation is signed and hashed. [.] Every verdict traces to a source span. [.] Every report is SR 11-7 compliant."
 
 
-[0:44] (As the compliance documents appear)
 
+[0:58] (As the "One platform" closing text appears)
 
-"When auditors ask [......] 'how do you know your AI is safe?' [...] she needs proof."
 
-
-
-[0:52] (As the audit report materializes)
-
-
-"Every evaluation is logged. [...] Every verdict is traceable. [...] Every model change has a record."
-
-
-
-[0:58] (As the three characters appear together and the closing text lands)
-
-
-"One platform. [...] Three humans. [...] Zero blind spots."
+"One platform. [.] Three workflows. [.] Zero friction."
 
 
 
@@ -544,119 +522,65 @@ Pause markers: [...] = short 300ms; [......] = longer 700ms
 
 PART 3 — VISUAL-AUDIO SYNC TABLE
 
-TimeCharacterVisualVoice-OverEmotion0-4sPriyaSlides in, name reveals"This is Priya. She runs MLOps..."Warm intro4-9sPriyaThought bubble + worry face"Every model update, she used to worry"Empathy9-15sPriya3 worry icons appear"Will hallucinations spike?..."Relatable pain15-19sPriyaLaptop shows eval dashboard"Now she runs an evaluation before every deploy"Solution19-20sPriyaSipping coffee, ✓ icon"She sleeps."Relief20-25sArjunSlides in, name reveals"This is Arjun. Data scientist. Curious."Curious energy25-33sArjun3 model cards appear"He wants to try the newest model..."Excited but cautious33-39sArjunComparison chart draws"He runs both on same production traces"Empowered39-40sArjunFist pump, sparkles"Data-driven decisions."Confident40-44sSaraSlides in, name reveals"And this is Sara. She keeps our AI compliant."Calm authority44-52sSaraCompliance docs appear"When auditors ask..."Serious weight52-58sSaraAudit report materializes"Every evaluation is logged..."Reassuring58-60sAll 3Characters appear together"One platform. Three humans. Zero blind spots."Unifying
+TimeVisual ElementVoice-Over LineFeel0-3sRole header + tool stack cards"For MLOps engineering..."Setup3-11sHarness pipeline + red alert + terminal"Hallucinations detected only after..."Pain11-19sPipeline gets new stage + YAML snippet"Integrates directly into Harness..."Solution19-20sGreen check + outcome text"Bad models never reach production"Payoff20-25sResearch role header + tool cards"For model research..."Setup25-32sJupyter + benchmark scores + frustration"Public benchmarks don't reflect..."Pain32-39sNew Python code + Arize UI + charts"A single Python call compares..."Solution39-40sGreen check + outcome text"Decisions backed by production data"Payoff40-46sRisk role header + tool cards"For model risk and governance..."Setup46-52sAudit email + failed Confluence search"Regulators demand auditable evidence..."Pain52-58sMRM audit trail table + compliance badge"Every evaluation signed and hashed..."Solution58-60sThree color bars + closing text"One platform. Three workflows. Zero friction."Unify
 
 
-PART 4 — WHY THESE THREE CHARACTERS?
+PART 4 — WHY THIS VERSION WORKS
 
-Strategic Persona Coverage:
-
-Priya (MLOps) — Represents: Operational users
+What we fixed from v1:
 
 
-Kaz, Ishita, model deployment engineers
-Story: "AI can break. I'm the one who wakes up when it does."
-Message: Peace of mind
+❌ Cartoon characters (Priya, Arjun, Sara) — replaced with actual tool interfaces
+❌ Emotional storytelling ("she sleeps at 2 AM") — replaced with factual outcomes ("Bad models never reach production")
+❌ Duolingo aesthetic — replaced with Bloomberg terminal aesthetic
+❌ Names and personalities — replaced with role titles and workflows
 
 
-Arjun (Data Scientist) — Represents: Innovation users
+Why enterprise audiences will connect:
 
 
-Mahalakshmi (newly onboarded on eval framework), model researchers
-Story: "I want to push the frontier, but safely."
-Message: Empowered experimentation
+They see their own tools — Harness, Arize, Jupyter, Confluence
+They see their own pain — post-deployment surprises, benchmark mismatch, audit anxiety
+They see integration, not disruption — "we plug into what you use"
+Concrete outcomes — "47 seconds", "500 traces", "signed and hashed"
 
 
-Sara (Compliance) — Represents: Governance users
+Political / Strategic wins:
+
+For Deepak Elias:
 
 
-David Mosciatti's MRM concern, Deepak Elias's audit needs
-Story: "Regulators are watching. I need paper trails."
-Message: Audit-ready by default
+Shows enterprise integration, not standalone tool
+Concrete business outcomes (0 rollbacks, audit-ready)
+Familiar tools = credibility
 
 
-Emotional Arc:
+For David Mosciatti:
 
 
-Priya: Fear → Relief
-Arjun: Uncertainty → Confidence
-Sara: Pressure → Preparedness
+Arize Phoenix prominently featured = validates alignment with model team framework
+Positions your service as enhancement layer, not competing solution
+"500 real production traces" = production-grounded story (your differentiator)
 
 
-Each character resolves their pain point in a way that makes the audience feel: "That's a real problem, and this really solves it."
-
-Why This Works Better Than Feature Lists:
-
-Most technical demos show features. This scene shows humans. That's what makes it memorable.
-
-When Deepak Elias watches this, he won't remember "hallucination percentages." He'll remember:
+For Akash Tamar:
 
 
-"Priya sleeps."
-"Arjun makes data-driven decisions."
-"Sara has the paper trail."
+Clear ROI framing per role
+No jargon overload, but not dumbed down either
+60 seconds cover three departments' concerns
 
 
-Human stories stick. Feature lists don't.
+For Kaz:
 
 
-PART 5 — INTEGRATION WITH FULL DEMO
-
-Updated Scene Order:
-
-SceneDurationContent1. Title0:00–0:15Hook2. Business Purpose0:15–1:1510 capabilities3. Three Cases1:15–2:15Air Canada, ICICI, Builder.ai4. Trigger Flow2:15–2:55How evaluation is triggered5. Who Uses It (THIS scene)2:55–3:55Priya, Arjun, Sara6. Roadmap & Closing3:55–4:15Future + credits
-
-Total video length now: ~4:15
-
-If you need to cut to strict 4 minutes, trim the closing scene to 20 seconds instead of 40.
+Honors his June 4 guidance: "self-driven, not tech-team-tested"
+Shows the eval service as a platform, not just his mentee's project
 
 
-PART 6 — DELIVERY CHECKLIST
 
-Before recording voice-over:
+PART 5 — RENDERING & DELIVERY
 
+Preview:
 
- Watch the animated scene 2-3 times, note when each character transitions
- Practice tone shifts (Priya: empathetic → Arjun: excited → Sara: calm)
- Record each character block separately for cleaner audio editing
- Save as high-quality WAV, convert to MP3 for Remotion
-
-
-Voice-over integration:
-
-tsximport { Audio, staticFile } from 'remotion';
-
-// Inside WhoUsesItScene:
-<Audio src={staticFile('voice-over-who-uses-it.mp3')} startFrom={0} endAt={1800} />
-
-
-PART 7 — A NOTE ON MAKING CHARACTERS LIKEABLE
-
-Small details that make them relatable:
-
-
-Priya's coffee: Everyone knows the coffee-during-crisis vibe
-Arjun's browser tabs: Every technical person has 20 tabs open — instantly relatable
-Sara's clipboard: Signals "someone who takes notes and gets things done"
-
-
-Facial expression animations to include:
-
-
-Priya: Worried (frown) → Relaxed (small smile) → Content (eyes closed briefly)
-Arjun: Curious (raised eyebrow) → Uncertain (?) → Triumphant (small grin)
-Sara: Serious (neutral) → Focused (slight lean forward) → Reassured (calm smile)
-
-
-Micro-animations:
-
-
-Steam from Priya's coffee (3 rising curves, looping)
-Blinking cursor on Arjun's laptop
-Slight breeze on Sara's plant behind her
-
-
-These tiny details make the characters feel alive and warm.
-
-
-Bhai — jab Copilot yeh scene generate kare, character illustrations pehle-pehle simple lag sakti hain. Preview dekhkar batao — agar characters bahut basic dikh rahe hain, hum next iteration mein illustration style ko refine kar sakte hain. Style guide already tight hai, generation ke baad tweaks minimal honge.
+bashnpm run start
