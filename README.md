@@ -1,432 +1,455 @@
-Remotion Scene: "3 Cases of AI Failure" — 60-Second Segment
+Create a new Remotion scene component called TriggerFlowScene.tsx inside src/scenes/ folder. This scene runs for 1200 frames (40 seconds at 30 fps) and visually demonstrates how a user triggers the Supervisor Evaluation Service through the Model Resiliency Framework — an on-demand evaluation flow, not automated per-deployment.
 
+The visual metaphor: A production AI system is a car. Model Resiliency is the dashboard. Supervisor Evaluation Service is the mechanic's diagnostic tool that plugs in when something changes. Or more precisely — use a circuit board / control panel visual language with signals flowing between nodes.
 
-For: Rahul Vinayak's Supervisor Evaluation Service demo video
-Purpose: Show 3 real-world AI failure cases to justify the need for evaluation
-Duration: 60 seconds (1800 frames at 30 fps)
-Structure: 20 seconds per case × 3 cases
-
-
-
-
-PART 1 — COPILOT ANIMATION PROMPT
-
-Paste this prompt into VSCode Copilot (Agent mode) inside your existing Remotion project:
-
-
-Create a new Remotion scene component called ThreeCasesScene.tsx inside src/scenes/ folder. This scene runs for 1800 frames (60 seconds at 30 fps) and dramatically presents three real-world AI failure cases that justify why continuous LLM evaluation is critical for enterprises.
-
-Scene Structure (3 sub-scenes, 20 seconds each = 600 frames each)
-
-Each case follows the same visual pattern for consistency, but with distinct branding colors:
-
-
-Case 1 (Air Canada): Frames 0-600 — Red accent (#D91E28)
-Case 2 (ICICI Bank): Frames 600-1200 — Orange accent (#F58220)
-Case 3 (Builder.ai): Frames 1200-1800 — Purple accent (#9333EA)
-
-
-Global Scene Design
+Overall Scene Design
 
 Background:
 
 
-Deep navy base (#0a0e27) with subtle particle grid
-Add a horizontal scanline effect that sweeps top-to-bottom during case transitions (creates cinematic "breaking news" feel)
-Include a persistent bottom-left counter showing "CASE 1/3", "CASE 2/3", "CASE 3/3" that updates per sub-scene
+Deep navy (#0a0e27) base
+Animated grid pattern (subtle cyan lines forming a circuit board texture)
+Occasional pulse effects along the grid lines to imply "live production traffic"
 
 
 Typography:
 
 
-Use Inter font (imported via @remotion/google-fonts/Inter)
-Headlines: 900 weight, 72-84px
-Body text: 400 weight, 24-28px
-Company name: 700 weight, 42-56px
+Inter font (imported via @remotion/google-fonts/Inter)
+Headlines: 900 weight, 64-80px
+Node labels: 700 weight, 24-32px
+Body/description text: 400 weight, 18-22px
 
 
+Color palette (add to constants.ts):
 
-Sub-Scene 1: Air Canada (Frames 0-600, 20 seconds)
 
-Frame 0-90 (3 seconds): Case reveal
+MODEL_RESILIENCY_TEAL: '#14b8a6' — Ishita's framework
+EVAL_SERVICE_PURPLE: '#a78bfa' — Your service
+PRODUCTION_CYAN: '#00d4ff' — Live production
+TRIGGER_AMBER: '#facc15' — The user action moment
+SUCCESS_GREEN: '#4ade80' — Verdict result
 
 
-Red scanline sweeps across screen top-to-bottom (frames 0-30)
-"CASE 1" appears bottom-left (small, white, monospace)
-"AIR CANADA" fades in from black to red (#D91E28) at center-top with a slight scale bounce (spring animation, damping: 8)
-Date "February 2024" appears below in small muted text
-Location tag: "Canadian Civil Resolution Tribunal"
 
+Sub-Scene 1: The Steady State (Frames 0-180, 6 seconds)
 
-Frame 90-270 (6 seconds): The scenario
+Frame 0-60 (2 seconds): Scene entry
 
 
-Split screen: Left half shows chat bubble animation (simulated chatbot conversation)
-Chat bubble 1 (customer, gray): "My grandmother passed away. Can I get a bereavement fare?"
-Chat bubble 2 (chatbot, cyan): "Yes, you can claim it retroactively within 90 days after your trip."
-Chatbot bubble should have a subtle glitch/error effect (red flicker for 3 frames) — visual hint that this is wrong
-Right half shows text callout: "BUT THAT WAS NEVER THE POLICY." (large, red, animated typewriter effect)
+Fade in from black
+Center-top text appears: "How Do We Trigger It?" (large, white, 84px)
+Below: "The self-serve, on-demand evaluation flow" (smaller, muted, 28px)
+Both fade in with 20-frame delay stagger
 
 
-Frame 270-420 (5 seconds): The consequence
+Frame 60-180 (4 seconds): The production baseline
 
 
-Split screen collapses
-Center of screen: Court gavel icon (from lucide-react Gavel icon), scale in from 0 with spring
-Below: "Air Canada Held Legally Liable"
-Damages banner: "$812.02 damages + legal fees" (typewriter effect)
-Precedent text (smaller): "First case establishing corporate liability for AI hallucinations"
+Text fades out, replaced by an architecture diagram forming from left to right:
+Left side: Cluster of small nodes labeled:
 
+"User Query" → "Supervisor Agent" → "LLM (Gemini 2.5)" → "Response"
+These nodes are connected with animated flowing lines (cyan pulses moving left-to-right)
 
-Frame 420-570 (5 seconds): The lesson
 
 
-Full-width bottom bar (red gradient background)
-Left: Large "❌" red X icon
-Center text: "WRONG BELIEF: 'The chatbot is a separate entity — we're not responsible.'"
-This entire section slides in from bottom with spring animation
+Top label: "PRODUCTION — Running smoothly" (cyan color)
+Bottom-right small text: "Model Resiliency Framework monitoring quality" (teal color)
+A small teal shield icon (from lucide-react Shield) hovers over the flow, pulsing softly
+This establishes: everything is fine, no evaluation needed yet
 
 
-Frame 570-600 (1 second): Transition out
 
+Sub-Scene 2: The Trigger Event (Frames 180-450, 9 seconds)
 
-Everything fades to 20% opacity
-Red scanline sweeps top-to-bottom in reverse (setup for Case 2)
+Frame 180-270 (3 seconds): A change is proposed
 
 
+The steady-state visual freezes and dims to 40% opacity
+A large text banner slides in from the top with red-amber gradient background:
 
-Sub-Scene 2: ICICI Bank (Frames 600-1200, 20 seconds)
+"⚠ CHANGE PROPOSED"
 
-Frame 600-690 (3 seconds): Case reveal
 
 
-Orange scanline sweeps
-"CASE 2" updates bottom-left
-"ICICI BANK" fades in with orange accent (#F58220)
-Date subtitle: "2023 — Public Twitter incident"
-Location tag: "India — Retail Banking"
+Below, three trigger scenarios appear as cards (staggered slide-in from right):
 
+"Gemini 2.5 → Claude 4.5" (icon: RefreshCw — model swap)
+"Prompt template updated" (icon: FileEdit — prompt change)
+"New agent tool added" (icon: Plus — architecture change)
 
-Frame 690-870 (6 seconds): The scenario
 
 
-Center of screen: Simulated chat interface with 4 stacked messages:
+Each card has a subtle amber glow
 
-Customer: "I want to close my credit card. I didn't get the credit limit increase." (gray bubble)
-Chatbot: "Great! Let me help you INCREASE your credit limit..." (cyan bubble with glitch effect)
-Customer: "NO. I want to CLOSE the account." (gray bubble, slight red border to show frustration)
-Chatbot: "Let me redirect you. Try again to get your limit increased..." (cyan bubble, more prominent glitch)
 
+Frame 270-360 (3 seconds): The critical question
 
 
-Each message slides in from bottom with 20-frame delay stagger
-After all 4 appear, a red "LOOP DETECTED" stamp animates in overlay (rotated 15 degrees, scale bounce)
+The three cards animate together toward the center and merge into a single card
+New text appears above in bold: "Should we deploy?"
+Below the merged card: "We don't know — until we evaluate."
+The word "evaluate" pulses in purple (#a78bfa)
 
 
-Frame 870-1020 (5 seconds): The consequence
+Frame 360-450 (3 seconds): The trigger moment
 
 
-Chat interface fades to background (30% opacity)
-Foreground: 3 metrics counter animation (numbers count up from 0):
+Zoom into a mock UI dashboard (Model Resiliency Framework interface)
+Show a clean, professional dashboard mockup with:
 
-"4+ Days" — customer wait time (large, orange)
-"0" — successful resolutions (red)
-"Twitter" — public complaint channel (with Twitter/X bird icon)
+Top bar: "Model Resiliency Framework" (teal accent)
+Left panel: Model registry list showing "Gemini 2.5 (current)" and "Claude 4.5 (proposed)"
+Right panel: A big, prominent button labeled "🧪 Run Evaluation" (amber color, subtle pulse)
 
 
 
-Below: "Customer trust: DAMAGED" in white bold
+An animated mouse cursor moves toward the button (curved path, natural motion)
+On click: button flashes bright, and a shockwave ripple animates outward from it (amber → cyan → purple)
 
 
-Frame 1020-1170 (5 seconds): The lesson
 
+Sub-Scene 3: The Handoff (Frames 450-780, 11 seconds)
 
-Full-width bottom bar (orange gradient background)
-Left: Large "❌" red X icon
-Center text: "WRONG BELIEF: 'AI can replace customer service without testing edge cases.'"
-Slides in with spring animation
+Frame 450-570 (4 seconds): Signal traveling to the Evaluation Service
 
 
-Frame 1170-1200 (1 second): Transition out
+The dashboard shrinks and moves to the left side of the screen
+On the right, the Supervisor Evaluation Service node materializes:
 
+Large purple hexagonal node with "Supervisor Evaluation Service" label
+Around it, three smaller sub-nodes appear (as satellites):
 
-Fade to 20% opacity
-Orange scanline sweeps (setup for Case 3)
+OverwatchConnector (top)
+SpanEvaluator (bottom-right)
+ReportService (bottom-left)
 
 
 
-Sub-Scene 3: Builder.ai (Frames 1200-1800, 20 seconds)
+These sub-nodes are connected to the main node with pulsing purple lines
 
-Frame 1200-1290 (3 seconds): Case reveal
 
 
-Purple scanline sweeps
-"CASE 3" updates bottom-left
-"BUILDER.AI" fades in with purple accent (#9333EA)
-Sub-header: "aka 'Engineer.ai' — the fake AI unicorn"
-Date subtitle: "Collapsed May 2025"
-Location tag: "London / India — $445M raised"
+An animated signal packet (small glowing cyan dot with trailing tail) travels from the Model Resiliency dashboard on the left to the Supervisor Evaluation Service on the right
+Signal packet carries a small label: "EVAL REQUEST"
 
 
-Frame 1290-1470 (6 seconds): The scenario
+Frame 570-690 (4 seconds): The evaluation activates
 
 
-Center: Large "NATASHA" text with fake AI hologram effect (subtle glow, tech border)
-Below: Marketing tagline appears typewriter: "AI that builds apps 6x faster, 70% cheaper"
-Then, a "reveal" animation:
+Signal packet enters the purple node
+Purple node "wakes up" — starts pulsing brighter
+Sub-nodes activate in sequence (staggered 15-frame delays):
 
-"NATASHA" logo shatters/glitches out
-Behind it, 700+ small human silhouettes appear in a grid pattern (rows of stick figures)
-Text overlay: "700 Indian developers manually coding"
-Small red "EXPOSED" stamp animates in top-right corner
+OverwatchConnector glows first — small text bubble: "Fetching 100 production traces via GraphQL"
+SpanEvaluator glows next — text bubble: "Judging with Claude 4.5 Sonnet — LLM-as-Judge"
+ReportService glows last — text bubble: "Aggregating verdicts"
 
 
 
+Between them, animated data flows (small dots traveling along connection lines)
 
 
-Frame 1470-1620 (5 seconds): The consequence
+Frame 690-780 (3 seconds): Real-time processing visualization
 
 
-Screen splits into 4 quadrants (2x2 grid), each with a metric:
+A progress bar appears at the top: "Evaluating..."
+Counter animation: "0 → 100 traces processed" (counts up quickly)
+Small verdict badges start popping up around the service node:
 
-Top-left: "$445M" — investors lost (with SoftBank, Microsoft, Qatar logos as icons)
-Top-right: "8 years" — deception duration
-Bottom-left: "BANKRUPT" — company status (large red text)
-Bottom-right: "FBI" — federal investigation (with justice scale icon)
+Green ✓ (multiple, most common)
+Yellow ⚠ (some)
+Red ✗ (few)
 
 
 
-Each quadrant slides in from its corner with staggered animation (10-frame delays)
+Bottom-right small text: "Processing time: 47 seconds"
 
 
-Frame 1620-1770 (5 seconds): The lesson
 
+Sub-Scene 4: The Result Returns (Frames 780-1080, 10 seconds)
 
-Full-width bottom bar (purple gradient)
-Left: Large "❌" red X icon
-Center text: "WRONG BELIEF: 'Nobody will verify if the AI is real — deploy and market it.'"
-Slides in with spring
+Frame 780-870 (3 seconds): The verdict flows back
 
 
-Frame 1770-1800 (1 second): Powerful closing beat
+All the processing visuals converge into a single glowing purple orb at the eval service node
+The orb transforms into a report card that pulses with success-green glow
+Report card contains:
 
+"VERDICT: PASSED" (green, bold)
+"Hallucination rate: 3.2%"
+"Confidence: 94%"
 
-All three case titles reappear as small horizontal thumbnails at the top:
 
-"AIR CANADA" (red)
-"ICICI BANK" (orange)
-"BUILDER.AI" (purple)
 
+The report card animates traveling back from right to left toward the Model Resiliency dashboard
 
 
-Below, one unifying message appears center screen with dramatic scale-up spring animation:
+Frame 870-990 (4 seconds): Decision back in Model Resiliency
 
-"THE COMMON FAILURE: NO EVALUATION."
 
+Report card lands on the Model Resiliency dashboard
+Dashboard updates: previously grayed "Claude 4.5 (proposed)" now shows a green checkmark next to it
+Text update appears: "✓ Claude 4.5 approved for production"
+Below: "Model swap authorized. Deploy safely."
 
 
-This text is 96px, bold white, with a subtle red-to-purple gradient
-Underline appears after 15 frames
+Frame 990-1080 (3 seconds): The loop closes
+
+
+The entire flow zooms out to show both systems together:
+
+Left: Model Resiliency (teal glow)
+Right: Supervisor Evaluation Service (purple glow)
+Between them: bidirectional connection line pulsing with success-green
+
+
+
+Bottom banner appears: "Trigger → Evaluate → Decide. On-demand. Every time."
+
+
+
+Sub-Scene 5: The Punchline (Frames 1080-1200, 4 seconds)
+
+Frame 1080-1140 (2 seconds): Zoom to core message
+
+
+All architecture visuals fade to 20% opacity in background
+Center of screen, large text appears with dramatic scale-up spring animation:
+
+"Not every deployment."
+
+
+
+Below, after 15-frame delay:
+
+"Every meaningful change."
+
+
+
+
+
+Frame 1140-1200 (2 seconds): Final closing beat
+
+
+Text remains
+Below it, in smaller amber text: "Because that's when it matters."
+Fade to next scene setup (10 frames of transition)
 
 
 
 Technical Requirements
 
 
-Component name: ThreeCasesScene
+Component name: TriggerFlowScene
 Export as default
 Use useCurrentFrame() for all timing
 Use interpolate() with extrapolateRight: 'clamp' for smooth animations
 Use spring() for entrance animations (damping: 12, mass: 1)
-All colors from constants.ts (add new ones: AIR_CANADA_RED: '#D91E28', ICICI_ORANGE: '#F58220', BUILDER_PURPLE: '#9333EA')
-Use lucide-react icons: Gavel, AlertTriangle, MessageSquare, X, Users, Scale
-Add subtle sound design placeholder comments (e.g., // SFX: scanline whoosh at frame 0)
+All colors from constants.ts
+Use lucide-react icons: Shield, RefreshCw, FileEdit, Plus, MousePointer, Cpu, GitBranch, CheckCircle2, FlaskConical
+Add subtle sound design placeholder comments (e.g., // SFX: whoosh at frame 450 — signal travel)
 
 
-Reusable Sub-Components
+Reusable Sub-Components (Create/Reuse)
 
-Create these helpers in src/components/:
+Add to src/components/:
 
 
-Scanline.tsx — the sweeping horizontal line effect
-ChatBubble.tsx — reusable chat message component (props: sender, message, delay, isError)
-CaseCounter.tsx — bottom-left "CASE X/3" indicator
-WrongBeliefBanner.tsx — the full-width bottom bar with the wrong belief text
+AnimatedNode.tsx — reusable hexagonal or circular node with pulsing effect (props: color, label, isActive)
+SignalPacket.tsx — the traveling data packet with trailing tail (props: startX, startY, endX, endY, delay, color, label)
+ArchitectureFlow.tsx — reusable connection lines between nodes with animated pulses
+DashboardMockup.tsx — reusable UI mockup component for Model Resiliency dashboard
 
 
 Integration
 
 After creating this scene, update SupervisorEvalDemo.tsx to include:
 
-tsx<Sequence from={<PREVIOUS_END>} durationInFrames={1800}>
-  <ThreeCasesScene />
+tsx<Sequence from={<PREVIOUS_END_FRAME>} durationInFrames={1200}>
+  <TriggerFlowScene />
 </Sequence>
 
 Confirm the scene renders without errors, then let me know the total updated composition duration.
 
 
-PART 2 — VOICE-OVER SCRIPT (60 SECONDS, PERFECTLY SYNCED)
+PART 2 — VOICE-OVER SCRIPT (40 SECONDS, PERFECTLY SYNCED)
 
 
 Recording tips:
 
 
-Total: 60 seconds. Aim for ~155 words (natural pace ~150 words/min for professional narration)
-Tone: Serious, journalistic, with dramatic pauses
-Recommended: Record 3 separate 20-second clips, then stitch — makes retakes easier
+Total: 40 seconds. Aim for ~100 words (natural pace ~150 words/min)
+Tone: Confident, explanatory, slightly warmer than the "3 Cases" scene — this is your product's hero moment
+Recommended: Record in 2 chunks (20 seconds each) for easier retakes
 Emphasize BOLD words with slight volume/pace shift
-Pause markers [...] = short 300ms pause; [......] = longer 800ms pause
+Pause markers: [...] = short 300ms pause; [......] = longer 700ms pause
 
 
 
 
 
-[0:00 – 0:20] Case 1: Air Canada
+[0:00 – 0:06] Opening — Setting the Stage
 
-[0:00] (As the red scanline sweeps and "AIR CANADA" appears)
+[0:00] (As "How Do We Trigger It?" appears)
 
 
-"February 2024. [...] Air Canada's chatbot [...] told a grieving customer he could claim a bereavement fare after his flight."
+"So how does it actually work?"
 
 
 
-[0:07] (As the chat bubbles animate on screen)
+[0:03] (As the production baseline architecture forms)
 
 
-"But that was never the policy. [......] The chatbot had hallucinated it."
+"In production, [...] our AI is running. [...] Users are asking questions. [...] Everything is fine."
 
 
 
-[0:12] (As the gavel icon and damages banner appear)
 
+[0:06 – 0:15] The Change Event
 
-"The court's ruling? [...] Air Canada was legally liable for what its AI said. [...] They paid damages [...] and set a global precedent."
+[0:06] (As "⚠ CHANGE PROPOSED" banner slides in)
 
 
+"Then something changes. [...] A new model. [...] A new prompt. [...] A new tool."
 
-[0:19] (Wrong belief banner slides in)
 
 
-(No narration — let the on-screen text land silently for 1 second)
+[0:12] (As the three cards merge and "Should we deploy?" appears)
 
 
+"And suddenly — [......] we don't know if our AI still works. [...] Not until we evaluate."
 
 
-[0:20 – 0:40] Case 2: ICICI Bank
 
-[0:20] (Orange scanline, ICICI BANK appears)
 
+[0:15 – 0:22] The Trigger Moment
 
-"India, 2023. [...] An ICICI Bank customer tried to close his credit card."
+[0:15] (As the Model Resiliency dashboard appears)
 
 
+"That's when [...] the Model Resiliency Framework [...] hands off to us."
 
-[0:26] (As the chat loop animates)
 
 
-"The chatbot [...] kept redirecting him [...] to increase his credit limit instead. [......] Again. [...] And again."
+[0:19] (As the mouse cursor clicks "Run Evaluation" and the shockwave animates)
 
 
+"One click. [......] Evaluation triggered."
 
-[0:34] (As metrics counter animates)
 
 
-"Four days later — [...] no resolution. [...] The complaint went public on Twitter. [...] Customer trust — gone."
 
+[0:22 – 0:33] The Handoff and Processing
 
+[0:22] (As the signal packet travels to Supervisor Eval Service)
 
-[0:39] (Wrong belief banner)
 
+"The Supervisor Evaluation Service takes over. [...] It fetches one hundred real production traces [...] from Tachyon Overwatch."
 
-(Silence, let text land)
 
 
+[0:28] (As sub-nodes activate and traces are being judged)
 
 
-[0:40 – 1:00] Case 3: Builder.ai
+"It runs each one through Claude 4.5 Sonnet [...] as our judge. [...] And scores them — [...] passed, [...] review, [...] failed."
 
-[0:40] (Purple scanline, BUILDER.AI appears)
 
 
-"Builder dot A-I. [...] The London startup that raised four hundred and forty-five million dollars [...] from SoftBank, Microsoft, and Qatar."
 
+[0:33 – 0:38] The Result
 
+[0:33] (As the report card forms and travels back)
 
-[0:49] (As NATASHA logo shatters into human figures)
 
+"Verdict: three-point-two percent hallucination. [......] Approved."
 
-"Their 'AI assistant' Natasha [......] was actually seven hundred Indian engineers [...] manually writing code."
 
 
+[0:37] (As the dashboard updates with the green checkmark)
 
-[0:55] (As the 4-quadrant metrics land)
 
+"Safe to deploy."
 
-"The company collapsed. [...] The FBI is investigating."
 
 
 
-[0:58] (As the closing message appears)
+[0:38 – 0:40] The Punchline
 
+[0:38] (As "Not every deployment. Every meaningful change." appears)
 
-"Three companies. Three disasters. [......] One common failure: [...] no evaluation."
 
+"Not every deployment. [...] Every meaningful change."
 
 
-[1:00] END.
 
+[0:40] END.
 
-PART 3 — DELIVERY CHECKLIST
 
-Before recording voice-over:
+PART 3 — VISUAL-AUDIO SYNC TABLE (For Reference)
 
-
- Watch the scene render at least twice to internalize timing
- Practice each 20-second block separately with a stopwatch
- Record in a quiet room with no background noise
- Use a decent USB mic (Blue Yeti, or even iPhone with pop filter)
- Save as high-quality WAV, then convert to MP3 for Remotion
-
-
-Voice-over integration in Remotion:
-
-tsximport { Audio, staticFile, Sequence } from 'remotion';
-
-// Inside ThreeCasesScene:
-<Audio src={staticFile('voice-over-3-cases.mp3')} />
-
-Rendering with audio:
-
-bashnpx remotion render src/index.ts SupervisorEvalDemo out/demo-with-audio.mp4
-
-Remotion automatically syncs audio to video timeline.
+TimeVisualVoice-OverFeeling0-3s"How Do We Trigger It?" title"So how does it actually work?"Curious3-6sProduction baseline forming"In production, our AI is running..."Calm6-12sChange proposed banner"Then something changes..."Alert12-15sCards merge, "Should we deploy?""We don't know... not until we evaluate"Tension15-19sDashboard appears"Model Resiliency hands off to us"Purposeful19-22sMouse click, shockwave"One click. Evaluation triggered."Action22-28sSignal travels, nodes activate"It fetches 100 real traces..."Momentum28-33sTraces being judged, verdicts pop"Claude 4.5 as judge. Passed, review, failed."Working33-37sReport card forms, travels back"3.2% hallucination. Approved."Relief37-38sDashboard updates green"Safe to deploy."Confidence38-40sFinal punchline text"Not every deployment. Every meaningful change."Resolute
 
 
 PART 4 — WHY THIS SCENE WORKS (For Your Own Understanding)
 
-Psychological arc:
+The Story Arc:
 
 
-Case 1 (Air Canada): Legal consequence — hits leadership/regulatory concerns
-Case 2 (ICICI Bank): Customer trust — hits business/UX concerns
-Case 3 (Builder.ai): Corporate integrity — hits investor/credibility concerns
-Closing punchline: All three failures had one common root — no evaluation — which directly justifies the existence of the Supervisor Evaluation Service.
+Steady state (calm) — sets up "everything works"
+Change event (tension) — introduces the unknown
+Trigger (action) — user takes control
+Processing (momentum) — the service does its job
+Result (relief) — verdict returns
+Punchline (conviction) — the philosophy: on-demand, not automated
 
 
-Emotional pacing:
+The Key Messages Landed:
 
 
-Case 1: Serious, factual (legal drama)
-Case 2: Frustrating, relatable (bad UX everyone has faced)
-Case 3: Shocking, dramatic (fraud reveal)
-Ending: Unifying, purposeful (your service = the answer)
+✅ Model Resiliency Framework is the entry point (Ishita's work is honored)
+✅ Supervisor Evaluation Service is the engine (your work is the hero)
+✅ Self-serve (user triggers, not automated on every commit)
+✅ Uses real production data (not synthetic-only — this is your differentiator vs the WIM model team's framework)
+✅ LLM-as-Judge with Claude 4.5 (your judge model choice, validated by Kaz)
+✅ On-demand philosophy (Kaz's June 4 direction: only when system changes or model migrates)
 
 
-Audience takeaway:
+Political / Strategic Wins:
+
+For Kaz (mentor):
 
 
-"Every company that skipped evaluation paid a price. Wells Fargo isn't going to be next — because we built this."
+Reinforces the philosophy he set on June 4: "self-driven, not tested by tech team"
+Shows Ishita's Model Resiliency Framework as the trigger layer — respects her work
+
+
+For David Mosciatti (US Tech Lead):
+
+
+Positions your service as a layer in a larger system, not a competing solution
+Makes the case for "our service + their prompts = complete evaluation platform"
+
+
+For Deepak Elias (Senior Stakeholder):
+
+
+Shows enterprise integration story (not a standalone tool)
+One-click trigger = easy to explain to non-technical leaders
+
+
+For the Model Team (future presentation):
+
+
+Frames alignment naturally: your service fits into the ecosystem, doesn't replace anything
 
 
 
-This is exactly what Deepak Elias and David Mosciatti need to see: the risk case in 60 seconds.
+PART 5 — INTEGRATION WITH FULL DEMO
+
+Suggested position in the 4-minute video:
+
+SceneDurationContent1. Title0:00–0:15Hook2. Business Purpose0:15–1:1510 capabilities3. Three Cases (previous scene)1:15–2:15Air Canada, ICICI, Builder.ai4. Trigger Flow (THIS scene)2:15–2:55How evaluation is triggered5. Live Metrics Dashboard2:55–3:20Real numbers, trends6. Roadmap & Closing3:20–4:00Future + credits
+
+This scene is the product's hero moment — the transition from "why we need this" to "here's how it actually works."
