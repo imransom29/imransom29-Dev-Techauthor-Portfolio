@@ -1,586 +1,536 @@
-Create a new Remotion scene component called WhoUsesItScene.tsx inside src/scenes/ folder. This scene runs for 1800 frames (60 seconds at 30 fps) and shows how three distinct enterprise workflows integrate with the Supervisor Evaluation Service. No cartoon characters — the visuals are entirely tool interfaces, code snippets, and workflow diagrams styled to feel like screenshots of real production systems.
-
-Each workflow gets 20 seconds and follows the same 4-part structure:
+DESIGN PHILOSOPHY
 
 
-Frames 0-90 (3s): Role header + tool stack reveal
-Frames 90-330 (8s): Pain point in current workflow
-Frames 330-510 (6s): Integration with Supervisor Evaluation Service
-Frames 510-600 (3s): Concrete benefit / outcome
+Journey metaphor with a real mountain visualization — matches Scene 1's sky/mountain aesthetic
+Three zones on the mountain path: Basecamp (done), Current Climb (in progress), Summit (next)
+A pulsing marker shows current position — halfway up the climb
+Corporate tone — engineering status, not marketing
+Every milestone is real — no exaggeration, no fictional progress
 
 
-Global Scene Design
 
-Background:
+PART 1 — COPILOT ANIMATION PROMPT
+
+Paste this into VSCode Copilot Chat (Agent mode) inside your existing Remotion project:
 
 
-Deep navy (#0a0e27) base — no distractions
-Very subtle grid overlay (5% opacity cyan lines forming faint circuit texture)
-Left border ribbon: 4px thick vertical bar showing the workflow's signature color (updates per workflow)
+Create a new Remotion scene component called WhereWeAreScene.tsx inside src/scenes/ folder. This scene runs for 1350 frames (45 seconds at 30 fps) and presents an honest engineering status update using a mountain climbing journey metaphor.
+
+The background must match Scene 1's aesthetic: layered mountain silhouettes with a gradient sky (deep navy at top fading to lighter tones toward the horizon). If Scene 1 used a mountain/sky visual, reuse that exact background component. Add subtle animated elements: slow-drifting clouds, a soft twilight glow, and occasional shooting-star flickers.
+
+Overall Scene Design
+
+Background layers (from back to front):
+
+
+Sky gradient: Top #0a0e27 (deep navy) → Middle #1a2350 (dusk purple) → Horizon #2d3d6f (pre-dawn blue)
+Distant mountain range: Silhouette in #0f172a, ~30% opacity, spans full width
+Mid-range mountain: Silhouette in #1e293b, ~60% opacity, slightly foreground
+Foreground path: A winding trail from bottom-left to upper-right, drawn as a subtle glowing line
+
+
+Sky animations:
+
+
+2-3 slow-drifting cloud shapes (barely visible, #3d4d7f at 20% opacity)
+A subtle twilight glow behind the summit (radial gradient in warm amber, very faint)
+Occasional star twinkles in the upper sky (small white dots pulsing gently every 3-5 seconds)
+
+
+Path visualization:
+The mountain trail is divided into three segments with distinct visual treatment:
+
+
+Segment 1 (bottom-left, 33% of path): Solid green glowing line (#4ade80) — "Basecamp reached"
+Segment 2 (middle, 33% of path): Amber pulsing dashed line (#facc15) — "Currently climbing"
+Segment 3 (top-right, 33% of path): Dim silver dashed line (#8a92b2) — "Not yet climbed"
+
+
+Current position marker:
+
+
+A pulsing purple hexagonal marker (#a78bfa) positioned exactly at the boundary between amber and silver segments (~66% along the path)
+Glowing halo animation (opacity oscillates 0.6 → 1.0 → 0.6 on a 60-frame loop)
+Small text label above marker: "YOU ARE HERE" (12px, uppercase, monospace, cyan)
 
 
 Typography:
 
 
-Inter font (imported via @remotion/google-fonts/Inter) for headers
-JetBrains Mono for code snippets and terminal output (import via @remotion/google-fonts/JetBrainsMono)
-Headers: 900 weight, 56-64px
-Body: 400 weight, 22-26px
-Code: 400 weight, 18-20px monospace
-All text should feel like it belongs on a production dashboard — clean, dense, no wasted space
+Headers: Inter, 900 weight, 48-56px
+Milestone labels: Inter, 600 weight, 20-24px
+Body text: Inter, 400 weight, 18-20px
+Zone labels ("BASECAMP", "CURRENT CLIMB", "SUMMIT"): JetBrains Mono, 700 weight, 14px, letter-spacing 3px
 
 
-Color palette (add to constants.ts):
 
+Scene Structure (5 phases across 45 seconds)
 
-MLOPS_CYAN: '#00d4ff' — Workflow 1
-RESEARCH_PURPLE: '#a78bfa' — Workflow 2
-RISK_AMBER: '#facc15' — Workflow 3
-SUCCESS_GREEN: '#4ade80'
-ERROR_RED: '#ff6b6b'
-TERMINAL_BG: '#0d1117' — GitHub-style dark for code panels
-CARD_BG: 'rgba(255, 255, 255, 0.03)'
-BORDER_SUBTLE: 'rgba(255, 255, 255, 0.08)'
+Phase 1: Opening & Context Reveal (Frames 0-90, 3 seconds)
 
+Frame 0-45: Fade in from black
 
-Transitions between workflows:
 
+Mountain background gradually reveals (opacity 0 → 100%)
+Path is initially invisible
 
-Clean vertical wipe (top-to-bottom) with signature color, 15-frame duration
-Previous workflow content fades to 15% opacity as new one enters
 
+Frame 45-90: Title appears
 
 
-WORKFLOW 1: MLOps Engineering (Frames 0-600, 20 seconds)
+Center-top of screen: "Where We Are Today" (56px, white, spring animation)
+Below in muted cyan: "Supervisor Evaluation Service — Engineering Status" (22px)
+Small date stamp bottom-right: "As of July 2026" (14px, muted)
 
-Frame 0-90 (3 seconds): Role header + tool stack reveal
 
-Layout:
+The path is not yet drawn.
 
 
-Top-left corner: Small monospace label "01 / MLOPS ENGINEERING" (cyan color, 24px, letter-spacing 2px)
-Center-left: Large heading "MLOps Engineering" (56px, white)
-Below heading: Subtitle "Preventing bad models from reaching production" (22px, muted)
-Right side: A "tool stack" panel showing 4 tool logos as small cards (each card has icon + name):
+Phase 2: Basecamp Reveal — What's Done (Frames 90-450, 12 seconds)
 
-Harness CD (icon: pipeline arrows)
-OpenShift (icon: red hat shape)
-JFrog Artifactory (icon: frog silhouette in green)
-Grafana (icon: orange flame with rings)
+Frame 90-120 (1 second): Zone label reveal
 
 
+Bottom-left corner: "✓ BASECAMP — ESTABLISHED" (green text with checkmark)
+Small subtitle: "Foundation complete"
 
-Cards animate in with 20-frame staggered fade + slight slide from right
-Use lucide-react icons where actual logos aren't available: Workflow, Container, Package, LineChart
 
+Frame 120-165 (1.5 seconds): Green segment of path draws itself
 
-Frame 90-330 (8 seconds): Pain point visualization
 
-Layout: Split into two vertical panels
+Line animates from bottom-left, drawing to the 33% point
+Green glow intensifies as it draws
 
-Left panel (60% width): A recreated Harness pipeline UI mockup showing:
 
+Frame 165-450 (9.5 seconds): Milestone flags appear along the green path
+Milestones plant along the green segment as small flag icons with text labels (staggered fade-in every 60 frames = 2 seconds each):
 
-Header bar: "Deployment Pipeline — supervisor-agent-service"
-5 pipeline stages horizontally connected by arrows:
+At each milestone point, a small flag icon plants with a text card appearing to its side. Use MapPin or Flag from lucide-react.
 
-Build ✓ (green)
-Test ✓ (green)
-Push to Artifactory ✓ (green)
-Deploy to Dev ✓ (green)
-Deploy to Prod — this stage pulses red with warning icon
+Milestones (in order):
 
 
+Frame 165 (5.5s): "Service architecture built" — subtitle: "FastAPI · GraphQL · LLM-as-Judge"
+Frame 225 (7.5s): "Demoed to Kaz" — subtitle: "June — approved for deployment path"
+Frame 285 (9.5s): "Demoed to Deepak Elias" — subtitle: "June — deployment go-ahead received"
+Frame 345 (11.5s): "Both repos deployed" — subtitle: "f-base-code + f-base-code-cd"
+Frame 405 (13.5s): "CI/CD Green" — subtitle: "GitHub Actions · JFrog Artifactory · Harness CD"
 
-Below the pipeline, a red alert banner slides in:
 
+Frame 435-450 (0.5 seconds): A larger banner appears at the top of the green segment:
 
-  ⚠ ALERT: Post-deployment hallucination rate: 12.4%
-  ⚠ ALERT: 47 user complaints in 2 hours
 
+"🎯 Deployed to Dev / Garland 6"
+Small text below: "Running on OpenShift Container Platform"
 
-The banner has a subtle red pulse animation
 
 
-Right panel (40% width): Terminal-style panel with real error messages appearing (typewriter effect):
+This banner has a subtle green glow to emphasize it as the current achievement.
 
-> Model deployed at 14:22 UTC
-> Overwatch trace count: 1,247
-> Hallucination detected: 12.4% (baseline: 3.1%)
-> ROLLBACK INITIATED at 14:36 UTC
-> Downtime: 14 minutes
-> Business impact: HIGH
 
-Below all this, in the bottom center, a bold statement appears at frame 240:
+Phase 3: Current Climb — In Progress (Frames 450-900, 15 seconds)
 
+Frame 450-480 (1 second): Zone label reveal
 
-"The problem: hallucinations detected AFTER deployment."
-(font: 32px, white, subtle fade-in)
 
+Bottom-center: "⚡ CURRENT CLIMB — IN PROGRESS" (amber text)
+Small subtitle: "Active work streams"
 
 
-Frame 330-510 (6 seconds): The integration
+Frame 480-525 (1.5 seconds): Amber dashed segment of path draws itself
 
-Transition: Left panel visuals stay, but the pipeline reorganizes to show a new stage inserted between "Deploy to Dev" and "Deploy to Prod".
 
-The new stage animates in with a purple glow:
+Draws from 33% to 66% point on the trail
+Dashed pattern with animated flow (dashes appear to move upward slowly)
 
 
-Stage 4.5: Supervisor Evaluation (purple, glowing)
-Small text below stage: "Pre-production LLM validation"
+Frame 525-870 (11.5 seconds): Current work items appear as climbing anchors along the amber segment
+Each anchor is represented by a small hexagonal node with pulsing animation. Text cards appear to the right side of the mountain (in a semi-transparent panel) as each anchor is placed.
 
+Anchors (in order, ~2.5 seconds each):
 
-Right panel updates with new terminal output:
 
-> Pre-deployment evaluation triggered
-> Fetching 100 production spans via Overwatch...
-> Judging with Claude 4.5 Sonnet...
-> Verdict: HALLUCINATION RATE 3.2% ✓
-> Threshold: <5% PASS
-> Pipeline PROCEEDING to production
+Frame 525 (17.5s): Anchor 1 — "Annotation Push-Back to Tachyon Overwatch"
 
-At frame 420, a code snippet card appears at bottom of screen showing the actual Harness pipeline YAML integration:
+Subtitle: "Closing the feedback loop with per-span verdict annotations"
+Small icon: Send (paper plane) in cyan
+Small tag: IN PROGRESS
 
-yaml- stage: supervisor-eval
-  when: pre-production
-  action: evaluate
-  threshold: hallucination_rate < 0.05
-  block_on_failure: true
 
-(displayed in a JetBrains Mono panel with syntax highlighting — YAML keys in cyan, values in green)
 
-Frame 510-600 (3 seconds): The outcome
+Frame 600 (20s): Anchor 2 — "MongoDB Integration"
 
+Subtitle: "Persistent storage for evaluation history and audit trails"
+Small icon: Database in cyan
+Small tag: IN PROGRESS
 
-All visuals dim to 30% opacity
-Center screen: Large green checkmark icon (Lucide CheckCircle2) with pulse animation
-Below: Bold text: "Bad models blocked before production."
-Small text: "Reduced mean-time-to-detection from hours to seconds"
-Bottom-right: Metrics card:
 
 
-  ⚡ 47 seconds  →  average eval time
-  🛡  0 rollbacks →  since integration
+Frame 675 (22.5s): Anchor 3 — "WIM Model Team Alignment"
 
+Subtitle: "Merging judge framework with GPUtilities (Karthik) — David Mosciatti's direction"
+Small icon: GitMerge in cyan
+Small tag: ACTIVE
 
-WORKFLOW 2: Model Research (Frames 600-1200, 20 seconds)
 
-Transition (Frames 600-615): Purple vertical wipe
 
-Frame 615-705 (3 seconds): Role header + tool stack reveal
+Frame 750 (25s): Anchor 4 — "Model Team Demo Preparation"
 
-Layout:
+Subtitle: "Presenting evaluation approach to WIM cognitive forum"
+Small icon: Presentation in cyan
+Small tag: SCHEDULED
 
 
-Top-left: "02 / MODEL RESEARCH" (purple, 24px monospace)
-Center-left: Large heading "Model Research"
-Subtitle: "Comparing models on production data, not benchmarks"
-Right side tool stack cards:
 
-VS Code / Jupyter (icon: code brackets)
-Arize Phoenix (icon: phoenix bird silhouette, use Bird from lucide-react if needed)
-Tachyon Overwatch (WF logo placeholder — small "T" in cyan)
-Python (icon: snake or FileCode)
 
 
+Frame 825-870 (1.5 seconds): The "YOU ARE HERE" marker pulses more prominently, drawing attention
 
+Frame 870-900 (1 second): Brief transition — camera zoom-out slightly to reveal upcoming summit
 
 
-Frame 705-945 (8 seconds): Pain point visualization
+Phase 4: Summit — What's Next (Frames 900-1230, 11 seconds)
 
-Layout: Two-panel Jupyter notebook interface
+Frame 900-930 (1 second): Zone label reveal
 
-Top panel: A realistic Jupyter notebook cell with syntax-highlighted Python code appearing (typewriter effect):
 
-python# Question: Is Claude 4.5 actually better than Gemini 2.5?
+Upper-right area: "🎯 SUMMIT — NEXT MILESTONES" (silver text)
+Small subtitle: "Roadmap ahead"
 
-# Traditional approach:
-run_public_benchmark("MMLU")  # Score: 88.7 vs 85.2
-run_public_benchmark("HellaSwag")  # Score: 92.1 vs 89.3
 
-Bottom panel: A frustrated comment appears next to the code (as an inline notebook markdown cell):
+Frame 930-975 (1.5 seconds): Silver dashed segment reveals itself
 
 
-"But public benchmarks don't reflect OUR customer questions.
-OUR domain. OUR context. OUR risk tolerance."
+Draws from 66% to summit
+Softer, less prominent than amber segment (visualizes "not yet climbed")
 
 
+Frame 975-1200 (7.5 seconds): Future milestones appear as summit markers
+Each future milestone is a smaller flag with silver/muted styling to indicate future state:
 
-Then a red-highlighted callout at the bottom:
 
-❌ Benchmark score ≠ Production performance
+Frame 975 (32.5s): "Judge Validation Framework Phase 2"
 
-At frame 840, transition text appears:
+Subtitle: "Target F1 ≥ 0.85 · Cohen's kappa ≥ 0.80"
+Icon: Target
 
 
-"The problem: research decisions based on benchmarks that don't match reality."
 
+Frame 1035 (34.5s): "SAT → UAT → PROD promotion"
 
+Subtitle: "Environment progression across data centers"
+Icon: TrendingUp
 
-Frame 945-1125 (6 seconds): The integration
 
-Notebook clears and rewrites with new code (typewriter effect):
 
-pythonfrom supervisor_eval import compare_models
+Frame 1095 (36.5s): "Automated weekly monitoring"
 
-# Compare models on YOUR actual production traces
-results = compare_models(
-    models=["gemini-2.5", "claude-4-5-sonnet"],
-    traces_from="overwatch",
-    trace_count=500,
-    date_range="last_7d"
-)
+Subtitle: "Continuous drift detection and alerting"
+Icon: Activity
 
-results.push_to_arize()  # View in Phoenix UI
 
-At frame 1020, an Arize Phoenix UI mockup slides in from the right side:
 
+Frame 1155 (38.5s): "Multi-LOB adoption"
 
-Header: "Arize Phoenix — Model Comparison"
-Two horizontal bar charts stacked:
+Subtitle: "Beyond WIMT — expand across Wells Fargo lines of business"
+Icon: Globe
 
-Gemini 2.5: Hallucination rate 7.8% (yellow-orange bar, animates left-to-right)
-Claude 4.5: Hallucination rate 3.2% (green bar, animates left-to-right, shorter)
 
 
 
-Below charts, a table showing:
-MetricGemini 2.5Claude 4.5ΔHallucination %7.8%3.2%-59%Avg latency1.2s1.4s+17%Cost / eval$0.006$0.009+50%
 
+Frame 1200-1230 (1 second): At the very peak of the mountain, a large summit flag appears:
 
-Green highlight on "Hallucination %" row
-Small badge: "500 real production traces"
 
+Flag design: Simple triangle in Wells Fargo red (#D71E28) with gold outline (#FFCD41)
+Text below flag: "Enterprise-Grade LLM Evaluation"
+Very subtle amber glow behind the summit (as if morning sunrise)
 
-Frame 1125-1200 (3 seconds): The outcome
 
 
-Visuals dim
-Center: Green checkmark
-Bold text: "Every experiment, backed by production data."
-Small text: "Directly integrated with Arize Phoenix"
-Metrics card:
+Phase 5: Closing Statement (Frames 1230-1350, 4 seconds)
 
+Frame 1230-1290 (2 seconds): Full mountain scene stays visible but slightly dims to 60% opacity to make room for closing text
 
-  🔬 500 traces   → per comparison
-  📊 Live in Arize → results streamed
+Frame 1290-1350 (2 seconds): Bold statement scales in with spring animation at center of screen:
 
 
-WORKFLOW 3: Model Risk & Governance (Frames 1200-1800, 20 seconds)
+"Milestone by milestone.
+Trace by trace."
 
-Transition (Frames 1200-1215): Amber vertical wipe
 
-Frame 1215-1305 (3 seconds): Role header + tool stack reveal
 
-Layout:
 
+Font: Inter, 900 weight, 64px
+Color: White with subtle cyan-to-amber gradient
+Below statement, in smaller muted text: "— The Supervisor Evaluation Service journey" (20px, muted cyan)
 
-Top-left: "03 / MODEL RISK & GOVERNANCE" (amber, 24px monospace)
-Center-left: Large heading "Model Risk & Governance"
-Subtitle: "Auditable evidence for SR 11-7 compliance"
-Right side tool stack cards:
 
-Confluence (icon: page/document)
-ServiceNow (icon: Ticket)
-MRM Dashboard (icon: Shield)
-Audit Reports (icon: FileText)
-
-
-
-
-
-Frame 1305-1545 (8 seconds): Pain point visualization
-
-Layout: Simulate an incoming audit request
-
-Top panel: An email/ticket UI mockup:
-
-From: Federal Reserve MRM Examiner
-Subject: SR 11-7 — Model Validation Evidence Request
-
-For your production AI advisor system, please provide:
-1. Evidence of continuous hallucination monitoring
-2. Traceable audit trail for all model changes
-3. Third-party validation of model outputs
-4. Documentation of testing methodology
-
-Response required within 15 business days.
-
-Bottom panel: A frantic Confluence/SharePoint search interface with red X marks appearing on multiple results:
-
-
-❌ "Model_Validation_Report_Q1_2025.pdf" — outdated
-❌ "Screenshot_evaluation_dashboard.png" — not auditable
-❌ "Email_from_data_science_team.msg" — informal
-❌ Manual monthly reports — labor-intensive
-
-
-At frame 1440, transition text:
-
-
-"The problem: no auditable trail for AI decisions."
-
-
-
-Frame 1545-1725 (6 seconds): The integration
-
-Visuals clear. An MRM Compliance Dashboard interface materializes:
-
-Header: "Model Risk Management — Audit Trail"
-
-Below header, a professional table appears with rows animating in (staggered):
-
-TimestampModelTrace IDVerdictHallucinationAuditor2026-07-06 14:23claude-4-5ovw_a3f21✓ PASSED3.2%System2026-07-06 12:15claude-4-5ovw_b7c88✓ PASSED2.8%System2026-07-05 16:44gemini-2.5ovw_x9d02⚠ REVIEW6.1%System2026-07-05 09:20gemini-2.5ovw_p4e56✓ PASSED4.2%System
-
-Each row has a small "View Trace" button that pulses briefly (suggests one-click drill-down to Overwatch span).
-
-Below the table:
-
-
-Green badge: "SR 11-7 Compliant Report Ready"
-Button: "📄 Export Full Audit Package"
-
-
-Small footer text: "Every evaluation. Every trace. Every timestamp. Signed and hashed."
-
-Frame 1725-1800 (3 seconds): The outcome + Scene closing
-
-
-Visuals dim
-Center: Green shield icon (Lucide ShieldCheck)
-Bold text: "Audit-ready by default."
-Small text: "Full traceability from verdict to source span"
-
-
-Closing beat (last 30 frames = 1 second):
-
-
-All three workflow color-bars appear as thin horizontal stripes at the top of screen (cyan / purple / amber)
-Below them, unifying text scales in with spring animation:
-
-
-
-"One platform. Three workflows. Zero friction."
-
-
-
-(text: 64px, white, bold; scale from 0.9 to 1.0 with spring damping 12)
-
-Small footer under the closing text: "Supervisor Evaluation Service · Enterprise-grade LLM evaluation" (18px, muted)
+The scene ends with all elements holding at their final positions for the last 30 frames.
 
 
 Technical Requirements
 
 
-Component name: WhoUsesItScene
+Component name: WhereWeAreScene
 Export as default
 Use useCurrentFrame() and useVideoConfig() for all timing
-Use interpolate() with extrapolateRight: 'clamp' for opacity and position
-Use spring() for entrance animations (damping: 12, mass: 1)
-All colors from constants.ts
-Use lucide-react icons: Workflow, Container, Package, LineChart, Bird, FileCode, Ticket, Shield, FileText, ShieldCheck, CheckCircle2, AlertTriangle, TrendingDown
-Terminal panels should have TERMINAL_BG background with subtle 1px border in BORDER_SUBTLE
-Code panels use JetBrains Mono font
-All UI mockups should look like production interfaces — clean lines, consistent padding (16px card padding, 8px between elements)
+Use interpolate() with extrapolateRight: 'clamp' for opacity and drawing animations
+Use spring() for milestone marker entrance animations (damping: 12, mass: 1)
+Use interpolate() with easing for smooth path drawing effects
+All colors from constants.ts (add if needed):
+
+SKY_TOP: '#0a0e27'
+SKY_MID: '#1a2350'
+SKY_HORIZON: '#2d3d6f'
+MOUNTAIN_DISTANT: '#0f172a'
+MOUNTAIN_MID: '#1e293b'
+PATH_DONE: '#4ade80'
+PATH_CURRENT: '#facc15'
+PATH_FUTURE: '#8a92b2'
+
+
+
+Use lucide-react icons: MapPin, Flag, Send, Database, GitMerge, Presentation, Target, TrendingUp, Activity, Globe, CheckCircle2
 
 
 Reusable Sub-Components
 
-Add to src/components/:
+Add to src/components/ (create if not existing):
 
 
-WorkflowHeader.tsx — reusable role header with monospace label + heading + subtitle (props: number, role, subtitle, color)
-ToolStackCards.tsx — reusable tool stack card row (props: tools array with name+icon+color, staggerDelay)
-TerminalPanel.tsx — reusable terminal-style code panel (props: lines array, delay, showCursor)
-MockupCard.tsx — reusable rounded card container for UI mockups (props: title, children, color, glowIntensity)
-CodePanel.tsx — syntax-highlighted code display (props: language, code, delay)
-AnimatedTable.tsx — table with staggered row animations (props: headers, rows, colorHighlights)
+MountainBackground.tsx — the layered mountain scene with gradient sky (reuse from Scene 1 if it exists)
+MountainPath.tsx — the winding path with 3 colored segments and animated drawing
+MilestoneFlag.tsx — reusable milestone marker with icon + label card (props: title, subtitle, icon, color, delay, position)
+PositionMarker.tsx — the pulsing "YOU ARE HERE" hexagon with halo animation
+ZoneLabel.tsx — reusable zone label with status text (props: text, subtitle, color, position, delay)
 
+
+Path Curve Reference
+
+The trail should curve naturally, not be a straight line. Use an SVG path something like:
+
+M 100 900   (start: bottom-left)
+Q 400 850, 600 700   (curve up gently)
+Q 900 500, 1100 350   (steeper climb)
+Q 1400 200, 1750 100   (final ascent to summit)
+
+Adjust for 1920×1080 canvas.
 
 Integration
 
 After creating this scene, update SupervisorEvalDemo.tsx to include:
 
-tsx<Sequence from={<PREVIOUS_END_FRAME>} durationInFrames={1800}>
-  <WhoUsesItScene />
+tsx<Sequence from={<PREVIOUS_END_FRAME>} durationInFrames={1350}>
+  <WhereWeAreScene />
 </Sequence>
 
 Confirm the scene renders without errors and preview at 30fps.
 
 
-PART 2 — VOICE-OVER SCRIPT (60 SECONDS)
+PART 2 — VOICE-OVER SCRIPT (45 SECONDS)
 
 
 Recording tips:
 
 
-Total: 60 seconds. ~140 words at professional pace.
-Tone: Bloomberg news anchor meets McKinsey partner. Confident, informative, no drama.
-Record 3 blocks of 20 seconds each for easier retakes.
-No excessive pauses. Corporate rhythm — measured but not slow.
-Emphasize BOLD words with subtle weight, not volume shifts.
+Total: 45 seconds. ~100 words at professional pace.
+Tone: Honest engineering update. Confident but not boastful. Think of a senior engineer briefing a technical steering committee.
+Record in 3 blocks matching the 3 zones (basecamp / climb / summit) for easier editing.
+Slight tempo shift per zone: basecamp = accomplished, climb = focused, summit = aspirational.
 Pause markers: [.] = short 200ms; [..] = 400ms
 
 
 
 
 
-[0:00 – 0:20] Workflow 1: MLOps Engineering
+[0:00 – 0:03] Opening
 
-[0:00] (As the "01 / MLOPS ENGINEERING" header and tool stack appears)
+[0:00] (As "Where We Are Today" title appears with the mountain revealing)
 
 
-"For MLOps engineering. [.] The team responsible for deploying models to production."
+"Where we are today."
 
 
 
-[0:05] (As the Harness pipeline and red alert visualize the pain)
 
+[0:03 – 0:15] Basecamp — What's Done
 
-"Today, [.] hallucinations are detected only after users complain. [..] Rollbacks happen in hours."
+[0:03] (As the basecamp zone reveals and green path draws)
 
 
+"The foundation is set."
 
-[0:11] (As the new "Supervisor Evaluation" stage animates into the pipeline)
 
 
-"The Supervisor Evaluation Service integrates directly into Harness pipelines [.] as a pre-production gate. [..] Failed evaluations block the deployment."
+[0:06] (As milestones plant along the green path)
 
 
+"The service is built. [.] Demoed to Kaz. [.] Approved by Deepak Elias. [..] Both repositories deployed. [.] CI/CD pipelines green."
 
-[0:19] (As the "Bad models blocked" outcome appears)
 
 
-"Bad models never reach production."
+[0:13] (As the large "Deployed to Dev" banner appears)
 
 
+"Live on Dev — Garland 6."
 
 
-[0:20 – 0:40] Workflow 2: Model Research
 
-[0:20] (As the "02 / MODEL RESEARCH" header appears)
 
+[0:15 – 0:30] Current Climb — In Progress
 
-"For model research. [.] The team evaluating new models and prompts."
+[0:15] (As the amber zone reveals)
 
 
+"Today, [.] we're climbing four fronts."
 
-[0:25] (As the Jupyter notebook shows benchmark scores + frustrated markdown comment)
 
 
-"Public benchmarks don't reflect production reality. [..] Different domain. [.] Different customers. [.] Different risks."
+[0:19] (As anchor 1 appears — Annotation Push-Back)
 
 
+"Pushing evaluation annotations back to Tachyon Overwatch."
 
-[0:32] (As the new Python code + Arize comparison appears)
 
 
-"A single Python call [.] compares any two models on real production traces. [..] Results stream directly into Arize Phoenix."
+[0:23] (As anchor 2 appears — MongoDB)
 
 
+"Integrating MongoDB for persistent evaluation history."
 
-[0:39] (As the "Every experiment" outcome appears)
 
 
-"Decisions backed by production data."
+[0:26] (As anchor 3 appears — WIM Model Team)
 
 
+"Aligning with the WIM model team [.] to merge our judge framework with theirs."
 
 
-[0:40 – 1:00] Workflow 3: Model Risk & Governance
 
-[0:40] (As the "03 / MODEL RISK & GOVERNANCE" header appears)
+[0:30] (As anchor 4 appears — Model Team Demo)
 
 
-"For model risk and governance. [.] The team accountable for regulatory compliance."
+"Preparing our demo for the cognitive forum."
 
 
 
-[0:46] (As the SR 11-7 audit request email and failed searches appear)
 
+[0:30 – 0:41] Summit — What's Next
 
-"Regulators demand auditable evidence. [..] Screenshots and manual reports don't hold up."
+[0:33] (As the summit zone reveals)
 
 
+"The summit is clear."
 
-[0:52] (As the MRM audit trail table appears)
 
 
-"Every evaluation is signed and hashed. [.] Every verdict traces to a source span. [.] Every report is SR 11-7 compliant."
+[0:35] (As future milestones appear on the silver path)
 
 
+"Judge validation Phase 2. [.] Environment promotion — SAT, [.] UAT, [.] Production. [..] Automated drift monitoring. [.] Adoption across lines of business."
 
-[0:58] (As the "One platform" closing text appears)
 
 
-"One platform. [.] Three workflows. [.] Zero friction."
 
+[0:41 – 0:45] Closing
 
+[0:41] (As the summit flag plants and closing text appears)
 
-[1:00] END.
+
+"Milestone by milestone. [..] Trace by trace."
+
+
+
+[0:45] END.
 
 
 PART 3 — VISUAL-AUDIO SYNC TABLE
 
-TimeVisual ElementVoice-Over LineFeel0-3sRole header + tool stack cards"For MLOps engineering..."Setup3-11sHarness pipeline + red alert + terminal"Hallucinations detected only after..."Pain11-19sPipeline gets new stage + YAML snippet"Integrates directly into Harness..."Solution19-20sGreen check + outcome text"Bad models never reach production"Payoff20-25sResearch role header + tool cards"For model research..."Setup25-32sJupyter + benchmark scores + frustration"Public benchmarks don't reflect..."Pain32-39sNew Python code + Arize UI + charts"A single Python call compares..."Solution39-40sGreen check + outcome text"Decisions backed by production data"Payoff40-46sRisk role header + tool cards"For model risk and governance..."Setup46-52sAudit email + failed Confluence search"Regulators demand auditable evidence..."Pain52-58sMRM audit trail table + compliance badge"Every evaluation signed and hashed..."Solution58-60sThree color bars + closing text"One platform. Three workflows. Zero friction."Unify
+TimeVisual ElementVoice-Over LineFeel0-3sTitle reveal + mountain fade-in"Where we are today."Grounding3-6sGreen path draws, "BASECAMP" label"The foundation is set."Confident6-13s5 milestones plant along green path"Service built. Demoed. Approved..."Rapid progress13-15s"Deployed to Dev" banner glows"Live on Dev — Garland 6."Achievement15-19sAmber zone reveals, dashed path draws"Today, we're climbing four fronts."Setup19-30s4 climbing anchors appear one by one"Annotations... MongoDB... alignment... demo..."Focused30-33sSummit zone reveals, silver path draws"The summit is clear."Forward-looking33-41s4 future milestones plant"Phase 2. Environment promotion. Monitoring. LOB adoption."Aspirational41-45sSummit flag plants + closing text"Milestone by milestone. Trace by trace."Purposeful
 
 
-PART 4 — WHY THIS VERSION WORKS
+PART 4 — WHY THIS SCENE WORKS
 
-What we fixed from v1:
+What this scene accomplishes:
 
-
-❌ Cartoon characters (Priya, Arjun, Sara) — replaced with actual tool interfaces
-❌ Emotional storytelling ("she sleeps at 2 AM") — replaced with factual outcomes ("Bad models never reach production")
-❌ Duolingo aesthetic — replaced with Bloomberg terminal aesthetic
-❌ Names and personalities — replaced with role titles and workflows
+For Kaz:
 
 
-Why enterprise audiences will connect:
-
-
-They see their own tools — Harness, Arize, Jupyter, Confluence
-They see their own pain — post-deployment surprises, benchmark mismatch, audit anxiety
-They see integration, not disruption — "we plug into what you use"
-Concrete outcomes — "47 seconds", "500 traces", "signed and hashed"
-
-
-Political / Strategic wins:
-
-For Deepak Elias:
-
-
-Shows enterprise integration, not standalone tool
-Concrete business outcomes (0 rollbacks, audit-ready)
-Familiar tools = credibility
+Honest engineering status — no exaggeration
+Acknowledges his mentorship and Deepak's approval publicly
+Shows the deployment path he architected is delivering
 
 
 For David Mosciatti:
 
 
-Arize Phoenix prominently featured = validates alignment with model team framework
-Positions your service as enhancement layer, not competing solution
-"500 real production traces" = production-grounded story (your differentiator)
+Prominently features "WIM Model Team Alignment" as active work
+Shows Karthik's GPUtilities reference is being pursued
+Demonstrates you're building bridges, not competing solutions
 
 
-For Akash Tamar:
+For Deepak Elias:
 
 
-Clear ROI framing per role
-No jargon overload, but not dumbed down either
-60 seconds cover three departments' concerns
+Recognizes his role in approving the deployment
+Shows discipline: separates done, in-progress, and future work honestly
+Business-facing summit (Multi-LOB adoption) signals long-term vision
 
 
-For Kaz:
+For Akash Tamar / senior leadership:
 
 
-Honors his June 4 guidance: "self-driven, not tech-team-tested"
-Shows the eval service as a platform, not just his mentee's project
+Clear structure: past, present, future
+No jargon overload
+The mountain metaphor makes progress instantly readable
+
+
+What makes this different from a project status slide:
+
+Most status updates are boring — bullet points, RAG indicators, Excel screenshots.
+
+This scene turns the same information into a visual journey. The audience doesn't just read that you deployed to Dev — they see the path light up and a banner glow. They don't just hear about MongoDB integration — they see the amber anchor being placed on an active climb.
+
+Same content. Radically more memorable.
+
+The closing line's power:
+
+
+"Milestone by milestone. Trace by trace."
 
 
 
-PART 5 — RENDERING & DELIVERY
+This is deliberately dual-meaning:
 
-Preview:
 
-bashnpm run start
+"Milestone by milestone" = engineering progress cadence
+"Trace by trace" = the actual product function (evaluating one trace at a time)
+
+
+The line ties the engineering journey to the product's purpose in five words. That's memorable.
+
+
+PART 5 — DELIVERY CHECKLIST
+
+Before recording voice-over:
+
+
+ Watch the scene 2-3 times to internalize timing
+ Practice tempo shifts (basecamp = accomplished, climb = focused, summit = aspirational)
+ Record each of the 3 zones as a separate audio file for cleaner editing
+ Save as high-quality WAV, then convert to MP3 for Remotion
+
+
+Voice-over integration:
+
+tsximport { Audio, staticFile } from 'remotion';
+
+// Inside WhereWeAreScene:
+<Audio src={staticFile('voice-over-where-we-are.mp3')} startFrom={0} endAt={1350} />
+
+Rendering:
+
+bashnpm run start   # preview
+npx remotion render src/index.ts SupervisorEvalDemo out/where-we-are.mp4 --codec=h264 --crf=18
+
