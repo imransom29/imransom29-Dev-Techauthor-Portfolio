@@ -1,512 +1,416 @@
-DESIGN PHILOSOPHY
+Remotion Scene: "The Problem" — 40 Seconds
+
+Style: 3Blue1Brown
 
 
-Mountain/sky background from Scene 1 continues — this scene happens "at altitude" — you're now showing the quality assurance layer ABOVE the product
-Pipeline visualization is the hero — 5 connected stages that light up sequentially
-The key insight to land: Benchmarking is NOT per-request. It's periodic calibration. Runtime uses a cached snapshot. This is a production best practice, not a limitation.
-Corporate polish — Datadog pipeline monitor aesthetic meets Bloomberg data flow
+PART 0 — DESIGN PHILOSOPHY (Read this first)
 
+3Blue1Brown's animation style has 6 non-negotiable rules. Every frame of this scene must obey them:
+
+Rule 1 — One idea on screen at a time.
+Never show two concepts simultaneously. When a new idea arrives, the old one fades to 15% opacity or exits entirely.
+
+Rule 2 — The visual carries the meaning, not the text.
+Text is a label, never an explanation. If you're writing a sentence on screen, you've failed. Maximum 4-6 words per text element.
+
+Rule 3 — Objects transform, they don't cut.
+A circle becomes a dot. A dot joins a group. A group reveals a pattern. Nothing appears or disappears abruptly — everything morphs, grows, or dissolves.
+
+Rule 4 — Silence and stillness are tools.
+Hold on a single frame for 1-2 seconds after a reveal. Let the viewer absorb. Don't rush to the next thing.
+
+Rule 5 — Color means something.
+Never decorative. Blue = neutral/data. Gray = unknown. Red = failure. Yellow = attention. If a color changes, something changed conceptually.
+
+Rule 6 — Motion is eased, never linear.
+Everything uses spring or ease-in-out. Nothing moves at constant speed. Objects have a sense of weight.
 
 
 PART 1 — COPILOT ANIMATION PROMPT
 
-Paste this into VSCode Copilot Chat (Agent mode) inside your existing Remotion project:
+Paste this into VSCode Copilot Chat (Agent mode):
 
 
-Create a new Remotion scene component called BenchmarkingScene.tsx inside src/scenes/ folder. This scene runs for 900 frames (30 seconds at 30 fps) and explains the Judge Validation Benchmark Pipeline — how we ensure the judge model itself remains trustworthy over time.
+Create a Remotion scene component ProblemStatementScene.tsx in src/scenes/. Duration: 1200 frames (40 seconds at 30 fps). Resolution 1920×1080.
 
-Background
+This scene explains a problem using pure visual storytelling in the style of 3Blue1Brown (Grant Sanderson's math animation channel). Study that aesthetic: near-black background, a small number of geometric objects, smooth eased motion, colors that carry semantic meaning, and minimal text used only as labels.
 
-CRITICAL: Reuse the exact same mountain/sky background from Scene 1 (TitleScene.tsx). If Scene 1 has a MountainBackground component, import and reuse it. If it's inline, extract it into a shared component first.
-
-The mountain/sky background should be:
+Absolute constraints:
 
 
-Layered mountain silhouettes (deep navy #0f172a and #1e293b)
-Gradient sky: #0a0e27 (top) → #1a2350 (mid) → #2d3d6f (horizon)
-Subtle slow-drifting clouds at 20% opacity
-Star twinkles in upper sky
-All at 40% opacity/brightness so foreground content is clearly readable
+Never more than 2 distinct concepts on screen simultaneously
+Text elements never exceed 6 words
+Every transition is a transformation (morph/scale/fade), never a hard cut
+Every animation uses spring() or eased interpolate() — never linear motion
+Hold on key frames for at least 30 frames after a reveal (let it breathe)
 
 
-Add a very subtle warm amber glow (#facc15 at 5% opacity) behind the summit area — this scene represents "quality assurance at the highest level."
+Color System
+
+BG:        '#0d0d1a'   // near-black with blue undertone
+BLUE:      '#58C4DD'   // 3B1B signature blue — neutral data
+GRAY:      '#6b7280'   // unknown / unjudged
+RED:       '#FC6255'   // 3B1B red — failure, hallucination
+YELLOW:    '#F0DB4F'   // attention, the question
+WHITE:     '#FFFFFF'   // primary text
+DIM:       '#3a3a4a'   // backgrounded elements
 
 Typography
 
 
-Inter font for all text (imported via @remotion/google-fonts/Inter)
-JetBrains Mono for technical labels and stage names
-Section headers: 900 weight, 48-56px
-Stage labels: 700 weight, 22-26px, JetBrains Mono
-Body/description: 400 weight, 18-22px
-Small annotations: 400 weight, 14-16px, muted color
+Font: Inter, imported via @remotion/google-fonts/Inter
+Weights: 300 (labels), 500 (emphasis), 700 (the one key statement)
+Sizes: labels 24px, statements 42px, the single hero line 64px
+Letter-spacing: 1px on all uppercase labels
+All text fades in with opacity + slight upward translate (8px). Never slides in from the side.
 
 
-Color Palette (add to constants.ts if needed)
 
+BEAT 1 — One interaction (Frames 0–150, 5 seconds)
 
-BENCHMARK_GOLD: '#facc15' — primary accent for this scene (trust/validation feel)
-PIPELINE_STAGE_INACTIVE: '#2d3d6f' — stages before activation
-PIPELINE_STAGE_ACTIVE: '#facc15' — stages when lighting up
-PIPELINE_CONNECTOR: '#8a92b2' — connector lines between stages
-RUNTIME_CYAN: '#00d4ff' — runtime system reference
-TRUST_GREEN: '#4ade80' — trust/confidence indicators
-CARD_BG: 'rgba(255, 255, 255, 0.04)' — semi-transparent cards over mountain bg
+Frame 0–30: Empty black screen. Hold.
 
+Frame 30–60: A single small circle (radius 12px, color BLUE) fades in at position (560, 540) — left-center of screen. Scale from 0.6 → 1.0 with spring (damping 12).
 
+Small label below it, 24px, WHITE, opacity 0.7: "Advisor"
 
-Scene Structure (3 phases across 30 seconds)
+Frame 60–100: A line draws itself from the circle to the right, ending at (1360, 540). The line draws using strokeDasharray animation — it grows from length 0 to full length. Color BLUE, 2px stroke.
 
+Frame 100–130: At the line's endpoint, a second circle fades in (same size, BLUE). Label below: "AI Teammate"
 
-Phase 1: Benchmark Pipeline Panel (Frames 0-420, 14 seconds)
+Frame 130–150: Two small text elements fade in above the line:
 
-Frame 0-60 (2 seconds): Scene entry
 
-Mountain background fades in (if transitioning from previous scene) or is already visible.
+Above left circle, 22px, WHITE 0.8 opacity: "What's the minimum investment?"
+Above right circle, 22px, BLUE: "$25,000"
 
-Center-top header appears with spring animation (damping: 12):
 
+Hold this frame. This is a complete, clean, simple picture. Do not add anything else.
 
-Small monospace label: "JUDGE VALIDATION" (14px, JetBrains Mono, #facc15, letter-spacing 3px)
-Below: "How We Trust the Judge" (48px, white, Inter 900)
-Below that: "Offline calibration pipeline — not per-request scoring" (20px, muted #8a92b2)
 
+BEAT 2 — It becomes a trace (Frames 150–300, 5 seconds)
 
-The subtitle "not per-request scoring" should have a subtle amber underline that draws itself left-to-right over 15 frames. This is a key distinction to land visually.
+Frame 150–200: Everything on screen — both circles, the line, both text labels — collapses inward toward the center point (960, 540). Use a scale transform from 1.0 → 0.0 with easing. As they collapse, opacity drops to 0.
 
-Frame 60-390 (11 seconds): Pipeline stages animate
+Frame 200–230: At the exact moment of collapse, a single dot (radius 8px, GRAY) appears at center with a small scale-pop (0 → 1.2 → 1.0, spring damping 8).
 
-Below the header, a horizontal pipeline appears. It consists of 5 connected stages arranged left-to-right with connector arrows between them.
+This is the key transformation: an entire interaction has become one data point.
 
-Each stage is a rounded rectangle card (160px wide × 80px tall) with:
+Frame 230–270: The dot travels rightward along an eased path to (1400, 540). As it moves, a rectangle outline fades in around that destination — a box, 300×400px, stroke BLUE 1.5px, no fill, corner radius 8px.
 
+Label above the box, 24px letter-spaced uppercase, BLUE: "TACHYON OVERWATCH"
 
-JetBrains Mono label text centered
-Icon above the label (from lucide-react)
-Semi-transparent background (CARD_BG)
-1px border in PIPELINE_STAGE_INACTIVE color initially
+Frame 270–300: The dot enters the box and settles at the top-left of an invisible grid inside it. Hold.
 
 
-Connector arrows between stages: simple horizontal lines with arrow heads, color PIPELINE_CONNECTOR.
+BEAT 3 — Multiplication (Frames 300–540, 8 seconds)
 
-The 5 stages (left to right):
+This is the scale reveal. The single dot becomes thousands.
 
-StageLabelIcon (lucide)Subtitle (appears below when active)1ExtractDownload"Pull real production inputs from Overwatch"2GenerateSparkles"Create factual + hallucinated test variants"3ReviewUsers"Auto/Manual expert labeling with kappa scoring"4FinalizeFilter"Stratify, split holdout, version the dataset"5ValidateShieldCheck"Run judge on benchmark, compute F1/precision/recall"
+Frame 300–380: Dots begin streaming in from the left edge of the screen toward the box. Start slow (2-3 dots), then accelerate. Each dot:
 
-Animation sequence:
 
-Each stage activates one at a time with 60-frame intervals (2 seconds each):
+Enters at a random y-position on the left edge
+Follows a slightly curved eased path to the box
+Settles into the next available position in a grid inside the box
 
-Stage 1 activation (Frame 60-120):
 
+Simultaneously, a counter appears below the box, 32px, monospace (JetBrains Mono), WHITE:
 
-Card border color transitions: PIPELINE_STAGE_INACTIVE → PIPELINE_STAGE_ACTIVE (gold)
-Card background gets subtle gold glow (boxShadow: '0 0 20px rgba(250, 204, 21, 0.2)')
-Icon scales from 0.8 → 1.0 with spring animation
-Subtitle text fades in below the card (18px, muted)
-Connector arrow to next stage starts pulsing (small gold dot travels along the line to the right)
+1
 
+It counts up as dots arrive. Use easing so it accelerates: 1 → 12 → 87 → 340 → 1,200 → 4,800 → 10,000
 
-Stage 2 activation (Frame 120-180):
+Frame 380–460: The stream becomes a blur of motion — hundreds of dots per second. The box fills with a dense grid of GRAY dots. The counter races.
 
+Frame 460–500: The stream stops abruptly. Counter locks at 10,000.
 
-Same animation pattern as Stage 1
-Stage 1 keeps its gold border but glow dims to 50% (focus shifts to current stage)
-Traveling gold dot reaches Stage 2
+Camera pulls back slightly (scale entire scene 1.0 → 0.85) to reveal the full box, now dense with gray dots.
 
+Below the counter, small label fades in, 24px, WHITE 0.6: "Every week."
 
-Stage 3 activation (Frame 180-240):
+Frame 500–540: Hold. Complete stillness. Let the scale land.
 
 
-Same pattern
-Special detail for Stage 3: Below subtitle, add a small extra annotation in amber:
-"Auto + Manual review tracks" — because this is where human experts participate
-A small "κ ≥ 0.80" badge appears next to the Review card (Cohen's kappa target)
+BEAT 4 — All identical, all unknown (Frames 540–750, 7 seconds)
 
+Frame 540–600: The box and its 10,000 dots slide to the left third of the screen and scale down slightly. Everything else on screen (counter, labels) fades to 20% opacity.
 
-Stage 4 activation (Frame 240-300):
+Frame 600–650: A single line of text fades in on the right side of the screen, 42px, WHITE, weight 500:
 
+"Every answer. Stored."
 
-Same pattern
-Annotation below: "80/20 train-holdout split"
+Hold 30 frames.
 
+Frame 650–700: That text fades out. A new line fades in, same position, same style — but in YELLOW:
 
-Stage 5 activation (Frame 300-360):
+"Which ones are correct?"
 
+Frame 700–750: All 10,000 dots begin a slow synchronized pulse (opacity 0.6 → 1.0 → 0.6, period 60 frames). They are all identical. Indistinguishable. The pulse emphasizes: we cannot tell them apart.
 
-Same pattern but bigger glow — this is the final validation stage
-Card border becomes double-width (2px → 3px)
-Below subtitle, show result badge that scales in with spring:
+Hold.
 
-Green rounded pill: "F1 ≥ 0.85 ✓" (green text on green-tinted background)
-Next to it: "Precision ≥ 0.88 ✓"
 
+BEAT 5 — The hidden failures (Frames 750–960, 7 seconds)
 
+This is the emotional core of the scene.
 
+Frame 750–800: The camera zooms into the box — scale up 1.0 → 2.5, centering on a section of ~100 visible dots. Individual dots become clearly visible.
 
+All still GRAY. All still identical.
 
-Frame 360-390 (1 second): All 5 stages glow simultaneously
+Frame 800–850: Suddenly, ~8 dots flip to RED — one at a time, in rapid succession (5-frame intervals). Each flip is a quick color transition + tiny scale pulse.
 
+Text fades in at bottom, 42px, RED:
 
-All cards have gold borders
-A single gold pulse wave travels from Stage 1 to Stage 5 (traverses all connector lines in 30 frames)
-Above the entire pipeline, text fades in: "Production-Grounded Benchmark Dataset" (24px, gold)
+"Some are hallucinated."
 
+Hold 20 frames.
 
-Frame 390-420 (1 second): Brief hold
+Frame 850–900: The RED dots flip back to GRAY.
 
+The text changes to, in WHITE:
 
-Everything holds for visual absorption
-Gentle pulse on the entire pipeline (opacity oscillates 0.95 → 1.0)
+"We just don't know which."
 
+This is the punch. The failures exist. But they're invisible.
 
+Frame 900–960: All dots resume the uniform gray pulse. Hold in silence. The viewer should feel the weight of not knowing.
 
-Phase 2: Runtime + Benchmark Linkage (Frames 420-720, 10 seconds)
 
-This is the critical insight — benchmarking doesn't run on every request. Runtime uses a cached calibration snapshot.
+BEAT 6 — The gap (Frames 960–1200, 8 seconds)
 
-Frame 420-480 (2 seconds): Visual transition
+Frame 960–1010: Camera pulls back out to show the full box again (scale 2.5 → 1.0).
 
-The 5-stage pipeline smoothly shrinks and moves to the upper-right quadrant of the screen (scale: 1.0 → 0.45). It becomes a "reference card" in the corner.
+The box moves to center-left. Everything else fades away.
 
-Center-left of screen, a new visualization forms:
+Frame 1010–1060: An arrow draws itself pointing INTO the box from the left. Label above the arrow, 24px, BLUE: "Traces in"
 
-Two-panel layout:
+Frame 1060–1120: On the right side of the box, another arrow attempts to draw itself pointing OUT — but it stops halfway and turns into a dashed line, then fades.
 
-Left panel (60% width): "RUNTIME" box
+In its place, a large "?" appears, 96px, YELLOW, with a soft scale-in.
 
+Below the "?", small text, 24px, WHITE 0.7: "No verdict."
 
-Header: "Runtime (per-request)" in cyan (#00d4ff)
-Icon: Zap from lucide-react
-Content shows a simplified flow:
+Frame 1120–1170: A single line of text fades in at the bottom center, 42px, WHITE, weight 700:
 
+"Overwatch stores. It doesn't judge."
 
-  User Query → Judge Model → Verdict
+Frame 1170–1200: Everything holds. Then, in the final 15 frames, a dashed rectangle fades in to the right of the box — an empty outline, stroke GRAY 1.5px dashed, same size as the Overwatch box.
 
+It is empty. It is the missing piece.
 
-Below the flow, a key element: "Cached Calibration Snapshot" card
-
-This card has a subtle animated connection line going UP to the benchmark pipeline in the corner
-Gold dashed line (animated traveling dashes) connects this card to the pipeline
-Label on the line: "trust signal"
-
-
-
-
-
-Right panel (40% width): "BENCHMARK" box
-
-
-Header: "Benchmark (periodic)" in gold (#facc15)
-Icon: FlaskConical from lucide-react
-Shows when it runs:
-
-"On judge model change" (with RefreshCw icon)
-"Periodic calibration cycle" (with Calendar icon)
-
-
-
-A small clock icon with text: "Not per-request"
-
-
-Both panels animate in simultaneously from their respective sides (left panel from left, right panel from right) with spring animation.
-
-Frame 480-600 (4 seconds): The connection explanation
-
-The gold dashed line between "Cached Calibration Snapshot" and the benchmark pipeline pulses more prominently.
-
-Center of screen (between the two panels), a key statement appears with typewriter effect:
-
-
-"Runtime uses a cached calibration snapshot from the benchmark results."
-(24px, white, Inter 600)
-
-
-
-After 60 frames, below it, second line appears:
-
-
-"If trust is low or stale → policy enforces stricter review behavior."
-(22px, amber/gold, Inter 400)
-
-
-
-Frame 600-660 (2 seconds): Trust meter visualization
-
-Below the two panels, a horizontal trust meter bar appears:
-
-
-Bar background: dark (#1e293b)
-Filled portion: gradient from green (left) to amber (right)
-Current fill: 87% (animated fill from 0% → 87% over 30 frames)
-Above the bar: "Judge Trust Score: 87%" (green text)
-Below the bar: Small labels at thresholds:
-
-0-60%: "⚠ Force manual review" (red zone)
-60-80%: "Auto-review with escalation" (amber zone)
-80-100%: "Full automation approved" (green zone)
-
-
-
-An arrow marker at 87% position with label: "Current"
-
-
-Frame 660-720 (2 seconds): Hold for absorption
-
-
-All elements hold position
-Gentle ambient animation only (pulse on trust meter, dashes on connection line)
-
-
-
-Phase 3: Business Value Close (Frames 720-900, 6 seconds)
-
-Frame 720-780 (2 seconds): Transition
-
-All Phase 2 visuals fade to 20% opacity.
-
-Mountain background becomes slightly more visible (opacity increases from 40% → 60%).
-
-Three gold-bordered cards appear center-screen, stacked vertically with 20px gap between them. Each slides in from the right with staggered 15-frame delays:
-
-Card 1:
-
-
-Icon: Shield (gold)
-Text: "Real-time hallucination governance"
-
-
-Card 2:
-
-
-Icon: FileCheck (gold)
-Text: "Auditable decisions with traceable evidence"
-
-
-Card 3:
-
-
-Icon: RefreshCw (gold)
-Text: "Calibrated judge lifecycle — trust that's measured, not assumed"
-
-
-Frame 780-840 (2 seconds): Unifying statement
-
-Three cards dim to 60% opacity.
-
-Center of screen, large closing statement appears with spring animation (damping: 8):
-
-
-"Scale AI safely."
-(64px, white, Inter 900)
-
-
-
-Below, after 15-frame delay:
-
-
-"With measurable quality controls."
-(32px, gold #facc15, Inter 600)
-
-
-
-Frame 840-900 (2 seconds): Hold + transition prep
-
-Statement holds at center.
-
-Mountain silhouette in background becomes slightly more prominent.
-
-Last 15 frames: very subtle fade begins — preparing transition to Scene 7 ("Where We Are").
+The scene ends on this frame — the visual question mark of what should go there.
 
 
 Technical Requirements
 
 
-Component name: BenchmarkingScene
-Export as default
-Use useCurrentFrame() and useVideoConfig() for all timing
-Use interpolate() with extrapolateRight: 'clamp' for opacity, position, scale
-Use spring() for card and text entrance animations (damping: 12, mass: 1)
-All colors from constants.ts
-Reuse MountainBackground component from Scene 1 — do NOT recreate it
-Use lucide-react icons: Download, Sparkles, Users, Filter, ShieldCheck, Zap, FlaskConical, RefreshCw, Calendar, Shield, FileCheck
-Pipeline stages must be a data-driven array (easy to modify stage count/labels)
-Trust meter should be a reusable component
+Component name: ProblemStatementScene, default export
+Use useCurrentFrame() and useVideoConfig()
+All entrance animations use spring({ frame, fps, config: { damping: 12, mass: 1 } })
+All fades use interpolate() with extrapolateRight: 'clamp' and easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+Dots should be rendered as SVG <circle> elements inside a single <svg> for performance
+The 10,000 dots: render only ~400 visible dots in the grid (visual density is enough — nobody counts). The counter says 10,000; the visual shows a dense representative sample.
+Camera zoom = wrap the entire scene content in a <div> with a transform: scale() driven by interpolate()
+Colors from constants.ts
 
 
-Reusable Sub-Components (Create/Reuse)
+Reusable Components
 
-Add to src/components/:
+Create in src/components/:
 
 
-PipelineStage.tsx — reusable pipeline stage card (props: label, icon, subtitle, isActive, glowIntensity, delay)
-PipelineConnector.tsx — animated connector line with traveling dot between stages
-TrustMeter.tsx — horizontal trust score bar with zone labels and animated fill (props: score, zones)
-ValueCard.tsx — gold-bordered card with icon + text for the closing business value section
+Dot.tsx — a single circle with color, pulse, and flip animations (props: x, y, color, pulseDelay, flipAtFrame, flipColor)
+DrawnLine.tsx — line that draws itself via strokeDasharray (props: x1, y1, x2, y2, startFrame, duration, color)
+DrawnArrow.tsx — arrow that draws itself, with optional "fails halfway" variant
+FadeText.tsx — text that fades in with 8px upward translate (props: text, size, color, weight, startFrame, x, y)
+CountUp.tsx — animated number counter with easing (props: from, to, startFrame, duration)
 
 
 Integration
 
-After creating this scene, update SupervisorEvalDemo.tsx to include:
-
-tsx<Sequence from={<PREVIOUS_END_FRAME>} durationInFrames={900}>
-  <BenchmarkingScene />
+tsx<Sequence from={0} durationInFrames={1200}>
+  <ProblemStatementScene />
 </Sequence>
 
-Confirm the scene renders without errors and the mountain background matches Scene 1.
 
+PART 2 — VOICE-OVER SCRIPT (40 seconds)
 
-PART 2 — VOICE-OVER SCRIPT (30 SECONDS)
 
+Tone: Calm, deliberate, curious. Think documentary narrator — not salesman.
+Pace: Slow. Let the silences breathe with the visuals.
+[.] = 400ms pause · [..] = 800ms pause · [...] = 1.5s silence (visual carries it)
 
-Recording tips:
 
 
-Total: 30 seconds. ~75 words at professional pace.
-Tone: Authoritative, precise. This is the "engineering rigor" section. Think senior architect briefing a governance committee.
-Record in 3 blocks (10 sec each) for easier retakes.
-Pause markers: [.] = 200ms; [..] = 400ms
 
+[0:00 – 0:05] (Single interaction draws itself on screen)
 
 
+"An advisor asks a question. [.] The AI answers."
 
 
-[0:00 – 0:14] Phase 1: Benchmark Pipeline
 
-[0:00] (As "How We Trust the Judge" header appears)
+[0:05 – 0:10] (Everything collapses into one gray dot, travels into the box)
 
 
-"But how do we trust [.] the judge itself?"
+"That's one interaction. [..] And it gets recorded."
 
 
 
-[0:04] (As pipeline stages light up one by one)
+[0:10 – 0:18] (Dots stream in. Counter races to 10,000)
 
 
-"A five-stage benchmark pipeline. [.] Extract production inputs. [.] Generate test variants. [.] Expert review. [.] Finalize the dataset. [.] Validate."
+"One trace. [.] Stored in Tachyon Overwatch."
 
+[...]
 
+"Ten thousand of them. [.] Every week."
 
-[0:13] (As F1 badge appears and all stages glow)
 
 
-"Target: [.] F1 above 0.85. [.] Production-grounded."
+[0:18 – 0:25] (Box slides left. Text: "Every answer. Stored." → "Which ones are correct?")
 
 
+"Every answer we've ever given [.] is sitting right there."
 
+[..]
 
-[0:14 – 0:24] Phase 2: Runtime Linkage
+"So — [.] which ones are correct?"
 
-[0:14] (As the two-panel Runtime vs Benchmark layout appears)
 
 
-"We don't benchmark every request. [..] That would be too expensive and slow."
+[0:25 – 0:32] (Zoom in. 8 dots flash red, then vanish back to gray)
 
 
+"Some of these [..] are hallucinated. [.] Made up."
 
-[0:19] (As the cached calibration connection and trust meter appear)
+[...]
 
+"We just don't know which ones."
 
-"Runtime uses a cached calibration snapshot. [.] If trust drops [.] — policy forces stricter review."
 
 
+[0:32 – 0:40] (Arrow in. No arrow out. A question mark. The empty dashed box appears)
 
 
-[0:24 – 0:30] Phase 3: Business Value Close
+"Because Overwatch stores. [..] It doesn't judge."
 
-[0:24] (As the three value cards appear)
+[...]
 
+"And that's the gap."
 
-"Real-time governance. [.] Auditable decisions. [.] A calibrated judge lifecycle."
 
 
+[0:40] END.
 
-[0:28] (As "Scale AI safely" closing text appears)
 
+Word count: ~75 words in 40 seconds.
 
-"Scale AI safely. [..] With measurable quality controls."
+That's deliberately slow — roughly 110 words/minute instead of the usual 150. The silences are not dead air. They're where the visual does the talking. That's the 3Blue1Brown discipline: if the animation is doing its job, you should be able to stay quiet.
 
 
+PART 3 — WHY THIS WORKS
 
-[0:30] END → transitions into Scene 7 ("Where We Are")
+The core visual argument, in three moves:
 
 
-PART 3 — VISUAL-AUDIO SYNC TABLE
+Abstraction — a rich human interaction collapses into a single gray dot. The viewer feels the reduction. This is what data does: it flattens.
+Scale — one dot becomes ten thousand. The viewer feels the impossibility of manual review. Nobody says "you can't check 10,000 by hand" — the animation says it.
+The invisible failure — red dots appear, then vanish. This is the single most important frame in the scene. The failures exist, but they are not visible. That gap between existence and visibility is the entire problem, expressed in one animation beat.
 
-TimeVisualVoice-OverFeel0-2sHeader: "How We Trust the Judge""But how do we trust the judge itself?"Question2-13s5 pipeline stages light up sequentially"Extract. Generate. Review. Finalize. Validate."Building13-14sF1 badge + all stages glow"F1 above 0.85. Production-grounded."Credible14-19sTwo-panel Runtime vs Benchmark"We don't benchmark every request..."Clarifying19-24sTrust meter fills + connection pulses"Cached calibration. If trust drops, stricter review."Insightful24-28s3 gold value cards slide in"Governance. Auditable. Calibrated."Confident28-30s"Scale AI safely" closing text"Scale AI safely. Measurable quality controls."Resolute
 
+What we deliberately did NOT do:
 
-PART 4 — WHY THIS SCENE IS STRATEGICALLY CRITICAL
 
-This scene answers the question nobody asked yet — but everyone is thinking:
+No architecture diagram
+No logos
+No bullet points
+No mention of Claude, GraphQL, FastAPI, or any implementation detail
+No numbers except one: 10,000
 
-After the live demo (Scene 5), every senior engineer and leader is thinking:
 
+The scene has exactly one job: make the executive feel the weight of not knowing. Everything else comes later.
 
-"OK, the judge scored the responses. But who scores the judge? How do we know the judge is right?"
 
+PART 4 — THE FINAL FRAME
 
+The scene ends on an empty dashed box. Nothing fills it.
 
-This scene pre-empts that question. It shows:
+That silence is intentional. The next scene answers it.
+ArtifactsComplete voiceover scriptDocument · MD Phase 2 implementation promptDocument · MD Where we are sceneDocument · MD Remotion demo codeDocument · MD Who uses it corporateDocument · MD Final voiceover scriptDocument · MD Complete voiceover conversationalDocument · MD Remotion demo previewCode · HTML Final short scriptDocument · MD Live demo scriptDocument · MD Three cases remotion sceneDocument · MD Combined final scriptDocument · MD Trigger flow remotion sceneDocument · MD Copilot remotion promptDocument · MD Where we are architectureCode · HTML Benchmarking sceneDocument · MD Who uses it sceneDocument · MD ContentTurboScribe Recording (29/06/2026, 13:16:23)
+29 Jun 2026, 13:33
+TurboScribe Recording (29/06/2026, 13:16:23)
+Play
 
 
-The judge is validated on production-grounded data (not synthetic benchmarks)
-Validation is periodic + on-change (not wastefully per-request)
-Runtime trust is cached (practical, cost-effective)
-If trust degrades, policy automatically tightens (self-healing system)
+09:22
+00:45
+Mute
 
+Settings
+(0:12) Okay (0:42) Yeah (1:12) Okay (1:17) Okay (1:27) Okay (1:42) Other three are coming under group test environment. Okay, so you have PTE, under PXP and pasted
+TurboScribe Recording (03/07/2026, 20:44:40)
+Play
 
-David Mosciatti will love this because:
 
+12:49
+12:53
+Mute
 
-Directly maps to MRM (Model Risk Management) practices
-SR 11-7 requires model validation lifecycle — this IS that lifecycle
-The "cached calibration snapshot" concept = what banks already do for financial models
+Settings
+(0:00) Just take it as far as we can, it's likely going to carry over into August for the hybrid work. (0:07) Okay, got it. So here's the key behind this.
+So this this one happens to be a spreadsheet for (0:14) PTE, righpastedurboScribe Recording (04/06/2026, 12:15:11)
+4 Jun 2026, 13:04
+TurboScribe Recording (04/06/2026, 12:15:11)
+Play
 
 
-The "not per-request" distinction is GOLD:
+00:00
+34:06
+Mute
 
-Most people assume evaluation = run on every request. That's:
+Settings
+(0:32) But this one, we have to work with the team. (0:35) That... (0:36) Portability is where they will help us to fix it. (0:39) Okay, this is going to be thpasted(0:00) This is a test ID to map to this particular PPID (0:04) You have just requested (0:05) Now when it is approved (0:07) You will get a test ID in your name (0:10) Like 0786 or something like that (0:14) When you get that test ID (0:16) Then your test ID (0:18) Which was generated (0:20) The newpastedTurboScribe Logo
+TurboScribe
+Pricing
+FAQs
+Blog
+1 of 3 daily transcriptions used
 
+Shortcuts
+Folders
+Export
 
-Expensive (2x LLM calls per request)
-Slow (doubles latency)
-Unnecessary (model doesn't change between requests)
 
 
-By explicitly saying "we don't benchmark every request — we use periodic calibration + runtime guardrails," you show:
 
 
-You understand production economics
-You've thought about cost/latency tradeoffs
-You're following industry best practice (same pattern as credit risk model validation at banks)
+More
 
 
-This is the sentence that will make Kaz nod and David Mosciatti say "he gets it."
 
 
-PART 5 — Q&A PREP (From Screenshot)
+TurboScribe Recording (06/07/2026, 12:41:58)
+6 Jul 2026, 12:55
+TurboScribe Recording (06/07/2026, 12:41:58)
+Play
 
-These were in the demo script's "One-line answers for likely questions." Memorize for the live demo:
 
-Q: "Are we benchmarking the suggestion model too?"
+00:00
+13:38
+Mute
 
+Settings
+(0:16) Pranav, do you remember the reppasted
+TurboScribe Recording (06/07/2026, 17:43:35)
+Play
 
-A: "Currently benchmarking focuses on judge reliability. Suggestion quality can be added as a separate benchmark track."
 
+03:19
+14:11
+Mute
 
-
-Q: "Is this just dashboard cosmetics?"
-
-
-A: "No. Every card is backed by live API data and benchmark artifacts. The pipeline and verdicts are operationally executable."
-
-
-
-Q: "Why not benchmark every request?"
-
-
-A: "Cost and latency. We use periodic calibration plus runtime guardrails — that's production best practice."
-
-
-
+Settings
+(0:17) Hi guys, so I was doing that but I was confused with the IT factory which is present in the (0:24) Jproc. (0:25) I mean I was like here I am getting some different names. (0:28) So what it would be then, so I justpasted
