@@ -1,3 +1,4 @@
+<img width="1202" height="669" alt="Screenshot 2026-07-23 at 8 47 01 AM" src="https://github.com/user-attachments/assets/5bfc2ec5-907b-45b5-90a7-64e045a78ad5" />
 %%{init: {
   "theme": "base",
   "flowchart": { "nodeSpacing": 55, "rankSpacing": 70, "curve": "basis" },
