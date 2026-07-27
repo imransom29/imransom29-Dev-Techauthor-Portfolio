@@ -1,3 +1,20 @@
+| **Aspect**           | **Model Team Framework**                      | **Our Service**                           | **Recommendation**                                |
+| -------------------- | --------------------------------------------- | ----------------------------------------- | ------------------------------------------------- |
+| **Purpose**          | Offline MRM validation                        | Live production monitoring                | **Keep both** – They serve different purposes     |
+| **How it Runs**      | CLI batch execution                           | Always-on FastAPI service                 | **Keep both** – Support both batch and live modes |
+| **Architecture**     | Pre → Traces → Post pipeline                  | Layered plugin-based service              | **Use our service as the foundation**             |
+| **Evaluators**       | 11 mature evaluator types                     | 1 production evaluator + 5 stubs          | **Adopt their evaluator suite**                   |
+| **Judge Prompts**    | Mature, well-tuned prompts                    | Functional but basic prompts              | **Adopt their prompts**                           |
+| **Judge Model**      | Tachyon completions                           | Claude 4.5 + Gemini 2.5                   | **Keep our judge model**                          |
+| **Datasets**         | 3 specialised datasets with train/test splits | 100-entry benchmark dataset               | **Adopt their datasets**                          |
+| **Reliability**      | Checkpointing and rerun logs                  | Concurrency support and graceful shutdown | **Keep both**                                     |
+| **Human Feedback**   | Built-in SME review workflow                  | Annotation support only                   | **Adopt their review workflow**                   |
+| **Reporting**        | Excel reports for MRM                         | Live dashboard                            | **Keep both**                                     |
+| **Technology Stack** | Python CLI                                    | FastAPI service architecture              | **Keep our technology stack**                     |
+<img width="594" height="511" alt="Screenshot 2026-07-27 at 8 59 41 PM" src="https://github.com/user-attachments/assets/ad73e618-b93c-4799-adc9-6b44aaae2ee7" />
+
+
+
 <img width="617" height="531" alt="Screenshot 2026-07-27 at 8 25 08 PM" src="https://github.com/user-attachments/assets/7e66f5b6-7eb9-4d1e-acb1-912bfe223085" />
 <img width="1202" height="669" alt="Screenshot 2026-07-23 at 8 47 01 AM" src="https://github.com/user-attachments/assets/5bfc2ec5-907b-45b5-90a7-64e045a78ad5" />
 %%{init: {
