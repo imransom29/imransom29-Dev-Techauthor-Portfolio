@@ -1,3 +1,4 @@
+<img width="617" height="531" alt="Screenshot 2026-07-27 at 8 25 08 PM" src="https://github.com/user-attachments/assets/7e66f5b6-7eb9-4d1e-acb1-912bfe223085" />
 <img width="1202" height="669" alt="Screenshot 2026-07-23 at 8 47 01 AM" src="https://github.com/user-attachments/assets/5bfc2ec5-907b-45b5-90a7-64e045a78ad5" />
 %%{init: {
   "theme": "base",
