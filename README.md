@@ -1,5 +1,9 @@
-On the environment point, I think you are right and this one looks stronger. Freddy did mention production and real time monitoring a few times, and said his timeline is for production. But he also said they will make it available for front line teams, so I am not fully clear whether Dev and UAT are covered. I did not ask him that directly.
+partly yes. He showed a preprocessing and parsing function where you write Python to pull fields out of the trace. In his demo he pulled name, query and output. When I asked him about span level versus trace level, he said it is up to you, you can pick a span or a trace, and write a Python script to segment and preprocess based on what you want to evaluate. So basic field extraction is there and the level is configurable.
 
-If it turns out they are production only, then what we are building serves a different need. We would be catching issues during development and UAT, before anything reaches an FA. Their tool would be watching what is already live. The model team is also focused on UAT right now, so between us and them we cover the pre production side.
+Aggregation of checks on attributes — no, I did not see that. What he showed was hallucination risk plotted over time, and then drilling into one trace to see its inputs, outputs and risk score. There was nothing about grouping or aggregating checks across attributes like theme, entitlement, thread ID or prompt ID. He also did not mention it as something coming later.
 
-So the one thing worth confirming is whether their platform supports Dev and UAT or only production. That single answer changes the picture quite a bit. Should I ask Freddy directly, or would it be better coming from one of you?
+Shift left — not at all. The entire demo was framed as real time production monitoring. He never mentioned Dev or UAT even once. Everything was about watching models that are already live.
+
+So on your point, I think the aggregation piece plus shift left is where we are actually different. The evals themselves are standard, he can do those. The attribute extraction is partly there but shallow. But aggregating model team checks across attributes, and doing that before production, was not part of what he showed.
+
+One caveat — it was a short call and he was rushing to his next meeting, so I cannot say for sure it does not exist. I can only say it was not in the demo and did not come up in conversation.
