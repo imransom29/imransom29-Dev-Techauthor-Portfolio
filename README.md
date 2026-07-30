@@ -1,3 +1,6 @@
+
+https://docs.google.com/presentation/d/1-Oyw0o9oj_-KDjh2GdcviKB_NprOvNfMimNqnQA7eBM/edit?usp=drivesdk
+
 Presenter Script — Integration Strategy (v2)
 16 slides · ~14 minutes
 Simple English. One line at a time. Pause at line breaks.
