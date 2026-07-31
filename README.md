@@ -41,3 +41,14 @@ Send the full data inline in the JSON response, which could get very large.
 Or return a download URL that we fetch separately.
 
 Or have both sides read from a shared store, and the response just carries a reference to it.
+
+
+
+
+
+
+Simple evaluators are fine — hallucination gives a verdict, agreement metrics give a few numbers, all fits in JSON.
+
+But sensitivity or performance returns a big table, maybe 500 rows. Their code writes it to Excel and returns the file path, which will not work over an API since the file is on their machine.
+
+For those, do we send the data inline, return a download URL, or use a shared store and just pass a reference?
