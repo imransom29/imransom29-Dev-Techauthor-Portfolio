@@ -15,3 +15,11 @@
 <img width="643" height="247" alt="Screenshot 2026-07-31 at 8 40 20 PM" src="https://github.com/user-attachments/assets/aaeb2d2e-1769-4313-8948-58a5810581c0" />
 
 [Unified_Evaluation_Platform_v2 (1).pptx](https://github.com/user-attachments/files/30594481/Unified_Evaluation_Platform_v2.1.pptx)
+
+
+
+ou mentioned the response may not be a simple payload — that with statistical evaluations the result could be a series of files or extractions, since it is measuring behaviour across jobs and spread rather than scoring one item.
+
+Can you give me one concrete example of what that response actually looks like for something like sensitivity or performance? I want to know whether I should be designing for inline JSON with a distribution array, or a job ID plus a list of artefact references that we fetch separately.
+
+Asking because if I design the schema assuming a scalar verdict and then find out later it needs to carry files, we would have to redo it.
