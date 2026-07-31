@@ -18,8 +18,8 @@
 
 
 
-ou mentioned the response may not be a simple payload — that with statistical evaluations the result could be a series of files or extractions, since it is measuring behaviour across jobs and spread rather than scoring one item.
+Rohan, I went through their code — the orchestrator already produces a run manifest with artefact paths rather than inline results, and the agreement metrics come back as a flat scalar dict. So the shape varies by evaluator.
 
-Can you give me one concrete example of what that response actually looks like for something like sensitivity or performance? I want to know whether I should be designing for inline JSON with a distribution array, or a job ID plus a list of artefact references that we fetch separately.
+The part I cannot work out from the code is how we carry the file-based ones across an API boundary. Their paths are local to wherever the run happened, so we cannot use those directly.
 
-Asking because if I design the schema assuming a scalar verdict and then find out later it needs to carry files, we would have to redo it.
+Do we hand back a signed URL or a fetch endpoint, or do we assume both sides read from a shared store and just pass a reference?
