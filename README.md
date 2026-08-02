@@ -1,987 +1,563 @@
-# Implementation Prompt — API Wrapper for the Model Testing Framework
+# Fix and Enhancement Prompt — Supervisor Evaluation Dashboard
 
-Give this whole document to your coding agent. It is written to be executed
-against the existing `NONAPP-RIFAMCOE-AI-TEAMMATE-MAIN` repository.
+This document addresses defects found in the running build plus the missing
+capability that causes most of them. Execute in the order given — Part A is a
+prerequisite for everything else.
 
 ---
 
-## 1. WHAT YOU ARE BUILDING
+## PART A — THE ROOT CAUSE
 
-This repository currently runs as a set of local Python scripts, invoked
-through a CLI dispatcher:
+### What is wrong
 
-```bash
-python run.py performance run --input data/sample_queries.xlsx
+The application currently treats **a span as the unit of evaluation**. It is
+not.
+
+An Overwatch trace for a single advisor question decomposes into roughly eight
+spans:
+
+```
+Trace  (one question, one evaluable unit)
+├─ LangGraph              CHAIN   — orchestration only
+├─ start_graph            CHAIN   — orchestration only
+├─ trim_state_messages    CHAIN   — orchestration only
+├─ chatbot                CHAIN   — orchestration only
+├─ RunnableSequence       CHAIN   — orchestration only
+├─ ChatPromptTemplate     CHAIN   — orchestration only
+├─ ChatOpenAI             LLM     — the query and the final output live here
+└─ tools_condition        TOOL    — the retrieved context lives here
 ```
 
-You are adding a **thin HTTP API layer on top of it**, so that another
-service — the Supervisor Evaluation Service — can invoke the same evaluators
-over the network instead of someone running them on a laptop.
+The three inputs a grounding judge needs — **query**, **retrieved context**,
+**output** — are in *different spans of the same trace*.
 
-### The single most important rule
+So evaluating a span in isolation cannot work. The observed symptom is exactly
+this: `No context captured. 0 chunks • 0 tok` on a trace where a tool call
+demonstrably ran.
 
-**Do not rewrite, refactor or "improve" anything under `tests_module/` or
-`evaluation/`.**
+### Why every other defect follows from it
 
-That code is the model team's evaluation methodology. It is the reason this
-integration is worth doing. Your job is to make it callable, not to change
-what it does.
-
-If you find yourself editing scoring logic, prompt text, metric calculations
-or thresholds — stop. You have gone outside scope.
-
-### What you may touch
-
-| Path | Change allowed |
+| Symptom | Cause |
 |---|---|
-| `api/` | **New package.** All your work goes here. |
-| `core/data_io.py` | **One function only.** See §4. |
-| `Dockerfile` | New file. |
-| `requirements-api.txt` | New file. |
-| `tests_module/` | **Read only.** Import from it, never edit. |
-| `evaluation/` | **Read only.** |
-| `core/orchestrator.py` | **Read only.** Reuse its patterns, do not modify. |
-| `kpi_scripts/` | **Do not touch.** |
-| `run.py` | **Do not touch.** The CLI keeps working exactly as it does today. |
+| `No context captured` | Context is in the TOOL span, not the span being judged |
+| Query renders as raw JSON | The message envelope is never parsed to reach `content` |
+| `10 spans matched (any kind)` | CHAIN spans are being counted as evaluable |
+| `Span scored 1/10` | Only 1 of 10 had any output — the rest were orchestration |
+| Arize shows 73, we fetch 10 | 73 spans ≈ 9 traces. Different units entirely. |
+| Judge returns a score with no context | It was asked an impossible question and answered anyway |
 
-Both entry points must coexist. After your change, this must still work
-unchanged:
+### The fix
 
-```bash
-python run.py performance run --input data/sample_queries.xlsx
-```
+Introduce **extraction level** as a first-class concept in the UI, the API and
+the extraction layer. Everything else in this document depends on it.
 
 ---
 
-## 2. WHY THIS SHAPE
+## PART B — EXTRACTION LEVEL
 
-Read this section. It explains decisions that will otherwise look arbitrary
-when you hit them.
+### B1. The three levels
 
-### Why a wrapper and not a rewrite
-
-The consuming team operates services. This team writes evaluation science.
-Rewriting the evaluators into a service architecture would take months and
-would put evaluation logic in the hands of people who did not design it.
-
-A wrapper means the evaluators stay exactly where they are, owned by the
-people who understand them, and the only new surface is the HTTP layer.
-
-### Why the request carries a `level`
-
-The consumer extracts data at three different granularities, and the volumes
-are not close:
-
-| Level | Rows at 20K user load |
-|---|---|
-| `prompt` | 1 |
-| `thread` | ~400 |
-| `time_range` | ~200,000 |
-
-That is five orders of magnitude. A single transport cannot serve all three,
-so the request declares which one it is and the payload arrives accordingly.
-
-### Why large payloads arrive as a URL
-
-Two hundred thousand rows is not a reasonable HTTP body. So above a threshold
-the consumer writes the data to shared object storage and sends only a
-reference.
-
-This works with almost no change on your side **because this codebase already
-reads a file into a pandas frame before doing anything with it**. That read
-step just needs to accept a URL as well as a path. That is the change in §4,
-and it is the only edit to existing code in this whole task.
-
-### Why the API is asynchronous
-
-Some evaluators here make LLM calls, some involve human review steps. Those
-will not finish inside an HTTP request timeout. So `POST /evaluate` returns
-immediately with a job id, and the caller polls for the result.
-
-### Why results have four shapes rather than one
-
-The evaluators in this repository do not all produce the same kind of answer:
-
-- `hallucination` produces a verdict per span
-- `agreement` produces a handful of scalars over a population
-- `sensitivity` produces a distribution across hundreds of perturbed pairs
-- `explainability` produces a table with several scored columns per row
-
-Forcing those into one response shape would either lose information or make
-every consumer special-case anyway. So the response is a tagged union and
-each evaluator declares which shape it returns.
-
----
-
-## 3. NEW PACKAGE LAYOUT
-
-```
-api/
-├── __init__.py
-├── main.py                 FastAPI app, lifespan, routes mounted
-├── config.py               settings, reads from env
-├── contracts.py            Pydantic models — this IS the Swagger spec
-├── registry.py             evaluator name → callable + metadata
-├── executor.py             runs an evaluator in a worker, maps its output
-├── jobs.py                 job state, idempotency, persistence
-├── storage.py              fetch input artifacts, upload result artifacts
-├── mappers/
-│   ├── __init__.py
-│   ├── base.py             ResultMapper interface
-│   ├── verdict.py          frame → VerdictResult[]
-│   ├── scalars.py          dict  → ScalarsResult
-│   ├── distribution.py     series → DistributionResult
-│   └── tabular.py          frame → TabularResult (uploads, returns ref)
-└── routers/
-    ├── __init__.py
-    ├── evaluate.py         POST /evaluate, GET /jobs/{id}/result
-    ├── capabilities.py     GET /capabilities
-    └── health.py           GET /health, GET /ready
-```
-
-No file over 250 lines. Split before you exceed it.
-
----
-
-## 4. THE ONE CHANGE TO EXISTING CODE
-
-**File:** `core/data_io.py`
-**Function:** `read()`
-
-Today it dispatches on file extension:
-
-```python
-def read(path, sheet_name=None, **kwargs) -> pd.DataFrame:
-    p = Path(path)
-    if p.suffix == ".parquet":
-        return pd.read_parquet(p, **kwargs)
-    if p.suffix == ".json":
-        return pd.read_json(p, **kwargs)
-    if p.suffix in (".xlsx", ".xls"):
-        ...
-    if p.suffix == ".csv":
-        return pd.read_csv(p, **kwargs)
-    raise ValueError(f"Unsupported file type: {p.suffix}")
-```
-
-Add URL support **in front of** the existing logic. Do not restructure what is
-already there.
-
-```python
-from urllib.parse import urlparse
-
-def _is_url(value: str) -> bool:
-    return urlparse(str(value)).scheme in ("http", "https")
-
-
-def read(path, sheet_name=None, **kwargs) -> pd.DataFrame:
-    """
-    Smart reader — dispatches by extension.
-
-    Accepts a local path or an http(s) URL. URL support exists so that a
-    caller running elsewhere can hand over data without needing shared
-    filesystem access. Everything after the fetch is unchanged.
-    """
-    if _is_url(path):
-        return _read_from_url(str(path), sheet_name=sheet_name, **kwargs)
-
-    p = Path(path)
-    # ... existing logic untouched from here down
-```
-
-And the fetch helper:
-
-```python
-def _read_from_url(url: str, sheet_name=None, **kwargs) -> pd.DataFrame:
-    """
-    Fetch a remote artifact and parse it.
-
-    Streamed to a temp file rather than held in memory, because a time-range
-    extraction can be hundreds of megabytes and loading it twice — once as
-    bytes, once as a frame — would double peak memory for no reason.
-
-    Format is taken from the URL path, ignoring any query string, since
-    signed URLs carry signature parameters after the extension.
-    """
-    import tempfile
-    import requests
-
-    parsed = urlparse(url)
-    suffix = Path(parsed.path).suffix or ".parquet"
-
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        with requests.get(url, stream=True, timeout=300) as response:
-            response.raise_for_status()
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                tmp.write(chunk)
-        tmp_path = Path(tmp.name)
-
-    try:
-        return read(tmp_path, sheet_name=sheet_name, **kwargs)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-```
-
-**Verify after this change:** every existing CLI command still runs. This
-function is called from `pipeline.py`, `orchestrator.py` and every module
-under `tests_module/`. A regression here breaks the whole repository.
-
----
-
-## 5. THE CONTRACT
-
-`api/contracts.py`. These models generate the OpenAPI document, so field names
-and types here are the agreement with the consumer. Do not rename anything
-without agreeing it with them first.
-
-### 5.1 Enums
-
-```python
-from enum import Enum
-
-class ExtractionLevel(str, Enum):
-    PROMPT = "prompt"
-    THREAD = "thread"
-    TIME_RANGE = "time_range"
-
-
-class DeliveryMode(str, Enum):
-    INLINE = "inline"
-    REFERENCE = "reference"
-
-
-class ArtifactFormat(str, Enum):
-    PARQUET = "parquet"
-    JSON = "json"
-    CSV = "csv"
-    XLSX = "xlsx"
-
-
-class JobStatus(str, Enum):
-    QUEUED = "queued"
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    PARTIAL = "partial"
-
-
-class ResultKind(str, Enum):
-    VERDICT = "verdict"
-    SCALARS = "scalars"
-    DISTRIBUTION = "distribution"
-    TABULAR = "tabular"
-```
-
-### 5.2 Payload descriptors
-
-```python
-class ArtifactRef(BaseModel):
-    url: HttpUrl
-    format: ArtifactFormat = ArtifactFormat.PARQUET
-    row_count: int = Field(ge=0)
-    size_bytes: int = Field(ge=0)
-    checksum: str          # sha256 hex of the artifact bytes
-    expires_at: datetime
-    schema_version: str = "1.0"
-
-
-class InlinePayload(BaseModel):
-    rows: list[dict[str, Any]]
-    schema_version: str = "1.0"
-```
-
-### 5.3 Request
-
-```python
-class EvaluationRequest(BaseModel):
-    job_id: str
-    idempotency_key: str
-
-    evaluator: str
-    level: ExtractionLevel
-    delivery: DeliveryMode
-
-    inline: InlinePayload | None = None
-    artifact: ArtifactRef | None = None
-
-    result_upload_url: HttpUrl | None = None
-
-    options: dict[str, Any] = Field(default_factory=dict)
-    requested_at: datetime = Field(default_factory=datetime.utcnow)
-    timeout_seconds: int = Field(default=900, ge=1)
-```
-
-Add a model validator enforcing that **exactly one** of `inline` or `artifact`
-is populated, and that it matches the declared `delivery`. Reject the request
-with 422 otherwise — a mismatch here means the caller has a bug, and failing
-loudly is more useful than guessing which field to read.
-
-### 5.4 Result variants
-
-```python
-class VerdictResult(BaseModel):
-    kind: Literal[ResultKind.VERDICT] = ResultKind.VERDICT
-    span_id: str
-    verdict: str                      # e.g. FAILED, hallucinated, irrelevant
-    score: float | None = Field(default=None, ge=0.0, le=1.0)
-    reasoning: str | None = None
-
-
-class ScalarsResult(BaseModel):
-    kind: Literal[ResultKind.SCALARS] = ResultKind.SCALARS
-    metrics: dict[str, float]
-    sample_size: int = Field(ge=0)
-
-
-class DistributionResult(BaseModel):
-    kind: Literal[ResultKind.DISTRIBUTION] = ResultKind.DISTRIBUTION
-    metric_name: str
-    count: int = Field(ge=0)
-    mean: float
-    median: float
-    std_dev: float
-    minimum: float
-    maximum: float
-    percentiles: dict[str, float] = Field(default_factory=dict)
-    detail: ArtifactRef | None = None
-
-
-class TabularResult(BaseModel):
-    kind: Literal[ResultKind.TABULAR] = ResultKind.TABULAR
-    artifact: ArtifactRef
-    columns: list[str]
-    summary: dict[str, float] = Field(default_factory=dict)
-
-
-EvaluatorResult = VerdictResult | ScalarsResult | DistributionResult | TabularResult
-```
-
-`sample_size` on `ScalarsResult` is mandatory and must be the real n, not the
-requested n. A kappa over eight samples and one over eight hundred are not the
-same claim, and the consumer renders a warning below a threshold.
-
-### 5.5 Responses
-
-```python
-class EvaluationAccepted(BaseModel):
-    job_id: str
-    evaluator: str
-    status: Literal[JobStatus.QUEUED, JobStatus.RUNNING]
-    poll_url: str
-    estimated_seconds: int | None = None
-    accepted_at: datetime = Field(default_factory=datetime.utcnow)
-
-
-class EvaluationResponse(BaseModel):
-    job_id: str
-    evaluator: str
-    status: JobStatus
-
-    results: list[EvaluatorResult] = Field(default_factory=list)
-
-    evaluator_version: str
-    judge_model: str | None = None
-
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    duration_seconds: float | None = None
-
-    error_code: str | None = None
-    error_message: str | None = None
-```
-
-`evaluator_version` is not optional. Six months from now someone will ask which
-version produced a given verdict, and the answer has to survive the evaluator
-being upgraded in the meantime.
-
-### 5.6 Capabilities
-
-```python
-class EvaluatorCapability(BaseModel):
-    name: str
-    display_name: str
-    description: str
-    version: str
-
-    supported_levels: list[ExtractionLevel]
-    result_kinds: list[ResultKind]
-
-    requires_llm: bool
-    typical_duration_seconds: int
-    max_rows: int | None = None
-    required_columns: list[str] = Field(default_factory=list)
-
-
-class CapabilitiesResponse(BaseModel):
-    service_name: str
-    service_version: str
-    evaluators: list[EvaluatorCapability]
-    max_inline_rows: int = 1000
-```
-
----
-
-## 6. REGISTRY
-
-`api/registry.py`. Maps an evaluator name to the existing callable plus the
-metadata the capabilities endpoint returns.
-
-**Populate this by reading `tests_module/` — do not invent entries.** Every
-name here must correspond to a real module in that package. If a module you
-expect is missing, leave it out and note it rather than stubbing it.
-
-```python
-from dataclasses import dataclass, field
-from typing import Callable
-
-@dataclass(frozen=True)
-class EvaluatorSpec:
-    name: str
-    display_name: str
-    description: str
-    version: str
-
-    # Callable taking (frame: pd.DataFrame, options: dict) and returning
-    # whatever that evaluator naturally returns. Do not force a shape here —
-    # the mapper handles conversion.
-    runner: Callable
-
-    result_kind: ResultKind
-    supported_levels: list[ExtractionLevel]
-    requires_llm: bool
-    typical_duration_seconds: int
-    required_columns: list[str] = field(default_factory=list)
-    max_rows: int | None = None
-```
-
-### Expected registry contents
-
-Fill `runner`, `version` and `required_columns` from the actual code. The
-`result_kind` and `supported_levels` columns below are the design intent —
-confirm each against what the module really produces, and flag any mismatch
-rather than silently changing the mapping.
-
-| name | result_kind | levels | requires_llm |
+| Level | Unit | What it joins | Typical volume |
 |---|---|---|---|
-| `hallucination` | VERDICT | prompt, thread | yes |
-| `generation` | VERDICT | prompt | yes |
-| `retrieval` | VERDICT | prompt | yes |
-| `prompt` | VERDICT | prompt | yes |
-| `tool_correctness` | VERDICT | prompt, thread | yes |
-| `cyber_guardrail` | VERDICT | prompt | yes |
-| `sensitivity` | DISTRIBUTION | time_range | no |
-| `replication` | DISTRIBUTION | time_range | no |
-| `performance` | TABULAR | time_range | yes |
-| `explainability` | TABULAR | time_range | yes |
-| `key_parameters` | TABULAR | time_range | yes |
-| `agreement` | SCALARS | time_range | no |
+| `prompt` | One question and its answer | All spans in one trace, flattened into query + context + output | 1 row per trace |
+| `thread` | One conversation | All traces sharing a thread id, ordered by time | ~400 rows at load |
+| `time_range` | A population | Every trace in a window | up to ~200,000 rows |
 
-**`supported_levels` matters.** The consumer reads it and will not send a
-thread-level payload to an evaluator that only handles a population. Getting
-this wrong produces confusing failures at their end, so be conservative — if
-you are unsure whether an evaluator handles a level, leave it out.
+### B2. UI control — new
 
----
+Add a level selector to the control bar, positioned **immediately after the
+project selector and before the time range picker**, because it changes what
+the time range means.
 
-## 7. RESULT MAPPERS
-
-`api/mappers/`. Each takes whatever the evaluator naturally returns and
-produces contract objects.
-
-**This is where the impedance mismatch gets absorbed.** The evaluators keep
-returning frames, dicts and series exactly as they do today. Nothing upstream
-of the mapper knows the API exists.
-
-### 7.1 Interface
-
-```python
-class ResultMapper(Protocol):
-    def map(
-        self,
-        raw: Any,
-        *,
-        job_id: str,
-        evaluator: str,
-        upload_url: str | None,
-    ) -> list[EvaluatorResult]:
-        ...
+```
+[ Project ▾ ]  [ Level: Prompt ▾ ]  [ Last 24 hours ▾ ]  [ Evaluators ▾ ]
 ```
 
-Return a list, because one evaluator can legitimately produce more than one
-result — a distribution plus the per-row detail behind it, for example.
+Options and their help text:
 
-### 7.2 Verdict mapper
-
-**Input:** a frame with one row per span.
-**Output:** one `VerdictResult` per row.
-
-Column names vary between modules in this repo, so resolve them from a
-candidate list rather than assuming:
-
-```python
-SPAN_COLUMNS    = ["span_id", "Span ID", "spanId", "trace_id", "Trace ID"]
-VERDICT_COLUMNS = ["verdict", "score", "label", "llm_verdict", "result"]
-REASON_COLUMNS  = ["reasoning", "explanation", "rationale", "reason"]
+```
+Prompt      Evaluate each question and answer on its own
+Thread      Evaluate whole conversations across turns
+Time range  Evaluate a population for aggregate metrics
 ```
 
-Use the same `first_non_empty`-style resolution the existing code already uses
-for input columns, so behaviour is consistent with the CLI path.
+Default to `Prompt`, because it is the only level at which grounding can be
+judged and grounding is the primary use case today.
 
-**Score handling.** Some evaluators return `0` / `1`, others return categorical
-strings like `faithful` / `hallucinated`. Emit the categorical value in
-`verdict` and, when a numeric score exists, put it in `score` normalised to
-0..1. Never invent a score where the evaluator did not produce one — leave it
-`None`.
+**URL param:** `?level=prompt`
 
-### 7.3 Scalars mapper
+### B3. Level changes what is available
 
-**Input:** a flat dict, exactly what `evaluation/agreement.py` →
-`all_agreement_metrics()` already returns.
+The level must gate the rest of the UI. Selecting a level that an evaluator
+does not support and letting the run fail five minutes later is a worse
+experience than disabling the option up front.
 
-**Output:** one `ScalarsResult`.
+| Evaluator | prompt | thread | time_range | Reason |
+|---|---|---|---|---|
+| hallucination | ✓ | ✓ | ✓ | Needs query + context + output together |
+| generation relevancy | ✓ | ✓ | ✓ | Needs query and answer |
+| retrieval relevancy | ✓ | ✓ | ✓ | Needs query and chunks |
+| toxicity | ✓ | ✓ | ✓ | Output only |
+| tool correctness | ✓ | ✓ | ✓ | Needs the tool sequence |
+| coherence | ✗ | ✓ | ✗ | A contradiction needs two or more turns |
+| context retention | ✗ | ✓ | ✗ | Same reason |
+| task completion | ✗ | ✓ | ✗ | Judged over a whole conversation |
+| sensitivity | ✗ | ✗ | ✓ | Compares two runs across a population |
+| agreement metrics | ✗ | ✗ | ✓ | A correlation over one item is not a number |
+| drift detection | ✗ | ✗ | ✓ | Needs a population to compare against |
+
+Evaluators unavailable at the selected level render **disabled with a
+tooltip** explaining why, rather than being hidden. Hiding them makes the
+product look less capable than it is; disabling them teaches the user the
+model.
+
+Tooltip copy: *"Coherence needs multiple turns. Switch to Thread level."*
+
+### B4. Extraction per level
+
+#### Prompt level
+
+Fetch **traces**, not spans. For each trace, flatten:
 
 ```python
 {
-    "percentage_agreement": 0.78,
-    "cohens_kappa_weighted": 0.71,
-    "pearson_r": 0.84,
-    "pearson_p_value": 0.001,
+    "unit_id":            trace_id,          # the evaluable unit
+    "trace_id":           trace_id,
+    "thread_id":          thread_id,
+    "root_span_id":       <the LLM span that produced the final output>,
+    "timestamp":          trace.start_time,
+
+    "query":              <parsed user question, plain text>,
+    "retrieved_context":  <joined chunks from TOOL spans>,
+    "context_chunks":     <count>,
+    "context_tokens":     <count>,
+    "output":             <final assistant text, plain>,
+
+    "tool_calls":         [ ... names in call order ],
+    "tool_errors":        [ ... any tool that returned status error ],
+    "model":              <model name>,
+    "latency_ms":         <trace total>,
+    "token_count":        <trace total>,
 }
 ```
 
-Coerce every value to `float`. Drop any key whose value is `NaN` rather than
-serialising it — `NaN` is not valid JSON and will fail at the consumer.
+**Parsing rules — these matter, the current build gets all three wrong:**
 
-`sample_size` comes from the length of the frame the metrics were computed
-over, not from the request.
+**Query.** Walk `spans[].input_messages`, take the **last** message with
+`role == "human"` or `role == "user"`, return `content` as plain text.
 
-### 7.4 Distribution mapper
+If `content` is itself a JSON string (the current payloads wrap it), parse one
+level and take `.content` again. Do not render the envelope.
 
-**Input:** a numeric series or a frame with a score column.
-**Output:** one `DistributionResult`, plus a `detail` reference when the row
-count exceeds the inline threshold.
+Fallback order: last human message → `trace.input` → empty string. Never dump
+the raw payload into the UI.
 
-```python
-DistributionResult(
-    metric_name=metric_name,
-    count=len(series),
-    mean=float(series.mean()),
-    median=float(series.median()),
-    std_dev=float(series.std()),
-    minimum=float(series.min()),
-    maximum=float(series.max()),
-    percentiles={
-        "p05": float(series.quantile(0.05)),
-        "p25": float(series.quantile(0.25)),
-        "p50": float(series.quantile(0.50)),
-        "p75": float(series.quantile(0.75)),
-        "p95": float(series.quantile(0.95)),
-    },
-    detail=detail_ref,
-)
-```
+**Retrieved context.** Walk spans where `kind == "TOOL"`. For each, read
+`output.hits[]` and collect `record.raw_context`. Join with a separator.
 
-The summary travels inline so the consumer can render a chart without
-downloading anything. `detail` is there for drill-down only.
+If a tool span has `status == "error"`, record it in `tool_errors` and
+contribute **nothing** to context. An error message is not retrieved context.
 
-### 7.5 Tabular mapper
+**Output.** Take the **last** span with `kind == "LLM"` and non-empty text
+content. If its content is a JSON envelope, parse to `.content`.
 
-**Input:** a frame, typically hundreds of thousands of rows.
-**Output:** one `TabularResult` with the frame uploaded and referenced.
+Skip spans whose only content is a `tool_call` — a tool invocation is not an
+answer.
 
-Always upload. Never inline a tabular result, regardless of size — the
-consumer's handling for this kind assumes a reference, and a size-dependent
-shape would make their code branch on something they cannot predict.
+#### Thread level
 
-Include a `summary` dict with two or three headline numbers, computed from
-whichever numeric columns exist. Same reasoning as above: it lets the
-dashboard show something immediately.
-
----
-
-## 8. STORAGE
-
-`api/storage.py`. Two responsibilities.
-
-### 8.1 Fetching input
-
-When `delivery` is `reference`, fetch and verify before doing anything else:
+Fetch every trace with the same `thread_id`, ordered ascending by start time.
+Flatten each turn using the prompt-level rules above, plus:
 
 ```python
-def fetch_input(artifact: ArtifactRef) -> pd.DataFrame:
-    """
-    Download, verify, parse.
-
-    Checksum is verified rather than trusted. A truncated download that
-    silently produces a short frame would corrupt every metric computed from
-    it, and that failure is invisible without this check.
-    """
+{
+    "unit_id":     thread_id,
+    "turn_index":  <0-based, in time order>,
+    ...prompt-level fields per turn
+}
 ```
 
-Verify `checksum` against the downloaded bytes. On mismatch raise, do not
-proceed — the resulting numbers would be wrong and nobody would know.
+Ordering is not cosmetic. Coherence is judged by comparing an earlier turn
+against a later one, so a shuffled frame produces silently meaningless
+results.
 
-Log a warning if `row_count` does not match the parsed frame, but continue —
-a row count drift is worth knowing about but is not necessarily corruption.
+#### Time range level
 
-Route this through `core.data_io.read()` so URL and local handling stay in one
-place.
+Same as prompt level, but paged over the whole window. Page size 500.
 
-### 8.2 Uploading results
+---
 
-When a result is too large to inline and `result_upload_url` was supplied:
+## PART C — DEFECT FIXES
+
+### C1. Time range filter is not applied
+
+**Observed:** Changing between Last 1 hour, Last 24 hours and Last 7 days
+returns the same result set.
+
+**Diagnose in this order:**
+
+1. Confirm the UI sends it. Network tab — does the request carry
+   `start_time` and `end_time`, in ISO 8601 with a timezone?
+2. Confirm the backend forwards it into the GraphQL variables, not just into
+   its own log line.
+3. Confirm Phoenix accepts the field names being used. Its spans connection
+   expects the time bounds on the connection arguments; passing them at the
+   wrong nesting level is **silently ignored**, which matches the symptom
+   exactly.
+4. Confirm no default `limit` is being applied after the time filter and
+   truncating the result to a fixed count.
+
+**The `10` is the strongest clue.** A round number that never changes is a
+hardcoded limit, not a query result. Find it and make it configurable.
+
+**Required behaviour after fix:**
+
+- Selecting a preset re-queries immediately, no separate Apply step
+- Timezone is explicit — send UTC, render in the browser's local zone
+- The applied range is shown in the chip bar so it is never ambiguous
+- The result count changes when the range changes, and if it does not,
+  that is a bug not a coincidence
+
+### C2. Unit count is wrong in three places
+
+**Observed:**
+
+```
+Spans fetched      10 spans matched (any kind)
+Span scored        FACTUAL • span 6219ff2e… • 1/10
+Run completed      completed • 0 spans • 10.06s
+```
+
+Three numbers, none of which agree.
+
+**Fix each:**
+
+**`10 spans matched (any kind)`** — replace with unit counting at the selected
+level, and stop counting CHAIN spans:
+
+```
+1,247 traces matched          (prompt level)
+89 threads matched            (thread level)
+198,432 traces in range       (time range level)
+```
+
+Remove `(any kind)` entirely. Filter to traces that contain at least one LLM
+span with output. A trace of pure orchestration is not evaluable and should
+not be in the denominator.
+
+**`1/10`** — the denominator must be evaluable units, not fetched spans. If 9
+of 10 had no output, the correct denominator was 1 all along.
+
+**`0 spans`** — a counter bug. The completion handler is reading a different
+variable from the one the scoring loop increments. Assert in a test that the
+completion count equals the number of `span_scored` events emitted.
+
+**Add a reconciliation line** to the completion event, because a silent gap
+between fetched and evaluated is how bad numbers reach a report:
+
+```
+Run completed — 1,247 fetched · 1,203 evaluated · 44 skipped (no output) · 10.06s
+```
+
+### C3. No control over how many units to evaluate
+
+**Add a limit control** next to the time range picker.
+
+```
+[ Last 24 hours ▾ ]  [ Limit: All ▾ ]
+```
+
+Options: `10`, `50`, `100`, `500`, `All`.
+
+Default `All`, because a silent cap is what produced the current confusion.
+When a limit is active it must appear as a chip: `[Limit: 100 ×]`.
+
+**Estimate before running.** When the range and level are chosen, call a cheap
+count endpoint and show:
+
+```
+About 198,000 traces in this range. Estimated run time 45 minutes.
+```
+
+If the estimate exceeds 10,000 units, show an inline warning suggesting a
+limit or a narrower range. Warn, do not block.
+
+### C4. Query and output render as raw JSON
+
+**Observed:** the Query panel shows
+`{"channel_name": ["PCG"], "messages": [{"type": "human", "data": {"content": …`
+
+**Fix:** apply the parsing rules in B4. The UI should show:
+
+```
+QUERY
+How to open an IRA?
+```
+
+**Keep the raw payload available but not primary.** Add a `{ }` toggle on each
+panel that switches between parsed and raw. Default parsed.
+
+The raw view is genuinely useful for debugging extraction, so do not delete
+it — just stop making it the default thing a reviewer sees.
+
+### C5. Judge runs with no context
+
+**Observed:** `No context captured. 0 chunks • 0 tok` and the judge still
+returned `score 0.000`.
+
+This is the most serious defect on the list. A grounding judge asked to assess
+grounding with no source has nothing to compare against, so whatever it
+returns is not a measurement.
+
+**Fix — guard before the judge is called:**
 
 ```python
-def upload_result(
-    frame: pd.DataFrame,
-    upload_url: str,
-    fmt: ArtifactFormat = ArtifactFormat.PARQUET,
-) -> ArtifactRef:
-    """
-    Serialise, PUT to the pre-signed URL, return a reference.
-
-    The URL arrives with the request rather than being negotiated, so no
-    round trip is needed to find out where results should go.
-    """
+if not retrieved_context.strip():
+    return VerdictResult(
+        span_id=unit_id,
+        verdict="NOT_APPLICABLE",
+        score=None,
+        reasoning=(
+            "No retrieved context on this trace, so grounding cannot be "
+            "assessed. Tool calls: {tools}. Tool errors: {errors}."
+        ),
+    )
 ```
 
-Default to parquet. At two hundred thousand rows it is roughly an order of
-magnitude smaller than xlsx and materially faster to read back.
+**Add `NOT_APPLICABLE` as a first-class verdict**, styled neutral, filterable,
+and **excluded from the hallucination rate denominator**. Including
+un-assessable units in a rate makes the rate wrong.
 
-Compute the sha256 of the serialised bytes and put it in the returned
-`ArtifactRef`, so the consumer can verify what they fetch.
+Metric cards must then read:
 
-**If `result_upload_url` is absent and the result is too large to inline:**
-return a `PARTIAL` status with an explicit error message saying an upload URL
-was required. Do not silently truncate.
+```
+Hallucination rate    24.3%
+303 of 1,247 assessable · 44 not applicable
+```
+
+### C6. Score and verdict text contradict each other
+
+**Observed:** reasoning says the response is accurate with no unsupported
+facts, and the score reads `0.000`.
+
+Both may be correct — 0 means no hallucination — but the reviewer cannot tell
+whether 0 is good or bad without knowing the scale.
+
+**Fix:**
+
+1. Always render a **verdict label** alongside the score. The label is
+   primary, the score is supporting detail.
+2. State the scale explicitly next to the number: `0.000 (0 = grounded, 1 = hallucinated)`
+3. If the judge returns no meaningful score, render `—` rather than `0.000`.
+   Zero and absent are different facts and must not look identical.
+
+### C7. Two different span identifiers
+
+**Observed:** the payload contains
+`"span_id": "1cd40883-d927-4fd2-a23c-97ae6e777303"` while the footer shows
+`span id: 6219ff2ee31d0f2c`.
+
+One is an application-level identifier from the Supervisor payload; the other
+is the OpenTelemetry span id. They are different namespaces.
+
+**Fix — name them distinctly everywhere:**
+
+```
+otel_span_id     6219ff2ee31d0f2c     ← what Overwatch keys on
+otel_trace_id    …                    ← what we key units on
+app_prompt_id    f4c83d3a-c935-…      ← from the Supervisor payload
+app_thread_id    …-K217675-cfcbd0c4-… ← from the Supervisor payload
+```
+
+**Annotations must be pushed against the OTel span id**, since that is what
+Overwatch indexes. Using the application id will silently write annotations
+that never appear.
+
+Show all four in the expanded row footer, each labelled, each click-to-copy.
+
+### C8. Peer verdict states are not distinguished
+
+**Observed:** `PEER / MODEL TEAM — No peer verdict.`
+
+This is currently correct — the model team's API does not exist yet — but the
+UI collapses several very different situations into one message.
+
+**Fix — four distinct states:**
+
+| State | Display | When |
+|---|---|---|
+| Not configured | "Peer evaluator not connected" + neutral styling | No base URL configured |
+| Not requested | "Not selected for this run" | Configured, but the user did not pick it |
+| Failed | "Peer evaluation failed: {reason}" + Retry button | Call was made and errored |
+| Not applicable | "Not supported at {level} level" | Evaluator does not support this level |
+| Pending | Skeleton + "Evaluating…" | Job accepted, still polling |
+
+A reviewer needs to know whether a missing verdict means *nobody asked*,
+*it broke*, or *it cannot apply here*. Those lead to three different actions.
 
 ---
 
-## 9. JOB HANDLING
+## PART D — SIDEBAR SECTIONS
 
-`api/jobs.py`.
+Four sections exist. Define what each contains.
 
-### 9.1 Storage
+### D1. Run
 
-SQLite via `aiosqlite`, in a file under the configured data directory. Not
-in-memory — jobs must survive a restart, otherwise a run in flight during a
-deploy is lost with no way to tell the consumer what happened.
+The launch surface. Project, level, time range, limit, evaluator selection,
+estimate, and the Run button. Live event stream appears here during a run.
 
-```sql
-CREATE TABLE IF NOT EXISTS jobs (
-    job_id            TEXT PRIMARY KEY,
-    idempotency_key   TEXT NOT NULL UNIQUE,
-    evaluator         TEXT NOT NULL,
-    level             TEXT NOT NULL,
-    status            TEXT NOT NULL,
-    request_json      TEXT NOT NULL,
-    result_json       TEXT,
-    error_code        TEXT,
-    error_message     TEXT,
-    started_at        TEXT,
-    completed_at      TEXT,
-    created_at        TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_jobs_idem   ON jobs(idempotency_key);
-CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
-```
-
-The unique constraint on `idempotency_key` is the enforcement point, not just
-an optimisation. It makes duplicate execution impossible at the storage layer
-rather than relying on every code path remembering to check first.
-
-### 9.2 Idempotency
-
-This is the behaviour the consumer depends on. Get it exactly right.
+**Add to the event stream** — the current entries are too sparse to diagnose a
+run:
 
 ```
-POST arrives with idempotency_key K
-    │
-    ├─ K not seen         → create job, start work, return 202 QUEUED
-    │
-    ├─ K seen, RUNNING    → return 202 with the existing job_id and poll_url
-    │                        Do NOT start a second run.
-    │
-    ├─ K seen, SUCCEEDED  → return 200 with the stored result
-    │                        Do NOT re-run. This is the whole point.
-    │
-    └─ K seen, FAILED     → create a new attempt under the same job_id,
-                             start work, return 202
+#1  Started       AI-Teammate-Supervisor-LOCAL · prompt level · hallucination
+#2  Fetched       1,247 traces · 44 skipped (no LLM output)
+#3  Ready         hallucination · concurrency 8
+#4  Scored        FACTUAL · trace 6219ff2e · 1/1,203
+#5  Skipped       trace 8a2f91c4 · no retrieved context
+#6  Peer sent     sensitivity · job-a1b2 · 198,432 rows by reference
+#7  Peer result   sensitivity · distribution · mean 0.887
+#8  Completed     1,247 fetched · 1,203 evaluated · 44 skipped · 10.06s
 ```
 
-The `SUCCEEDED` branch is what prevents paying twice for an LLM call when a
-response was lost in transit rather than the work actually failing.
+Colour the left edge by kind: neutral for info, amber for skip, red for error.
 
-The `FAILED` branch allows retry, because a genuine failure should be
-retryable — the consumer will retry with the same key after backoff.
+### D2. Results
 
-### 9.3 Execution
+The table. Already largely built. Apply C4, C6, C7, C8 here.
 
-`api/executor.py`. Run the evaluator off the event loop:
+**Add a unit column** whose header follows the level:
 
-```python
-result = await asyncio.get_running_loop().run_in_executor(
-    process_pool, _run_evaluator_sync, evaluator_name, frame, options
-)
+```
+prompt level      → "Trace"
+thread level      → "Thread"  with a turn count badge
+time_range level  → "Trace"
 ```
 
-Use a `ProcessPoolExecutor`, not threads. The evaluators here are CPU-bound —
-pandas operations, similarity computation, statistical work — and threads
-would be blocked by the GIL. Size the pool from config, default 2.
+**Add the attribute breakdown panel** to the right sidebar. This is the
+capability that makes the tool useful to the model team rather than merely
+usable — pass rate grouped by theme, entitlement, tool used or channel, worst
+first, with small samples marked.
 
-Guard with the request's `timeout_seconds`. On timeout mark the job `FAILED`
-with `error_code = "TIMEOUT"` and a message naming the evaluator and the limit
-it exceeded.
+### D3. Review
+
+Disagreements only. Currently every unit shows `agreement: single_source`
+because the peer side is not live, so this view will be empty until the model
+team's endpoint exists.
+
+**Until then, make it useful anyway** by including:
+
+- Units where our judge returned `REVIEW`
+- Units where the score sits within a configurable band of the threshold
+- Units marked `NOT_APPLICABLE` with tool errors, since those indicate a
+  system fault rather than a model fault
+
+Label the section honestly: "Needs human review" rather than "Disagreements",
+because today the reason is not disagreement.
+
+### D4. Benchmark
+
+Judge validation. Currently at 74% against a trust gate of 85%.
+
+Should show:
+
+- Current accuracy against the golden set, with the gate marked
+- Confusion matrix — false positives and false negatives are not equally
+  costly and a single accuracy number hides which is happening
+- Accuracy over time, per judge version
+- The failing cases, so prompt changes can be targeted
+- Golden set size and its composition (factual vs hallucinated)
+
+**Gate the auto-push behaviour on this number.** Below the gate, auto-push
+should be disabled and the UI should say so:
+
+> Judge accuracy is 74%, below the 85% trust gate. Auto-push is disabled and
+> all verdicts require review.
 
 ---
 
-## 10. ENDPOINTS
+## PART E — WHAT THE MODEL TEAM ACTUALLY NEEDS
 
-### `POST /evaluate`
+The stated goal is that this helps the model team. Their current pain is
+running the framework on individual laptops. Three things serve that directly:
 
-```
-202  EvaluationAccepted     accepted, work started
-200  EvaluationResponse     idempotent replay of a completed job
-422  validation error       payload shape wrong, unknown evaluator,
-                            or level not supported by that evaluator
-503  service error          worker pool unavailable
-```
+### E1. Scheduled runs
 
-Validate before accepting:
-
-1. `evaluator` exists in the registry
-2. `level` is in that evaluator's `supported_levels`
-3. Payload matches the declared `delivery`
-4. `required_columns` are present in the data
-
-Failing at submission with a clear message is far better than failing five
-minutes into a run with a `KeyError` from deep inside a scoring function.
-
-### `GET /jobs/{job_id}/result`
+They should be able to configure a run and leave.
 
 ```
-200  EvaluationResponse     any status, terminal or not
-404  unknown job
+Schedule: Daily at 02:00
+Project:  AI-Teammate-UAT
+Level:    Time range (previous 24h)
+Evaluators: all
+Notify:   email on completion
 ```
 
-Return the response object regardless of status. The consumer polls this and
-reads `status` to decide whether to keep polling.
+This is the single feature that removes their laptop dependency.
 
-### `GET /capabilities`
+### E2. Run history and comparison
 
-Returns `CapabilitiesResponse` built from the registry. No arguments.
+```
+Run              Date          Units    Hallucination    Agreement
+run-0891         02 Aug 02:00   1,247        24.3%          91.2%
+run-0876         01 Aug 02:00   1,198        22.1%          89.7%
+run-0854         31 Jul 02:00   1,301        31.8%          88.4%
+```
 
-This is how the consumer discovers what exists. An evaluator added here
-becomes visible to them without a release on their side.
+Selecting two runs shows a diff — which units changed verdict, and the
+aggregate movement. **This is what tells them whether a prompt change helped**,
+and it is not obtainable from a single run at all.
 
-### `GET /health` and `GET /ready`
+### E3. Export that matches their format
 
-`/health` — process is up. Cheap, no dependencies touched.
+They work in xlsx with specific column names. Export should offer:
 
-`/ready` — dependencies are usable. Check the SQLite file is writable and the
-process pool is alive.
+- Their existing result schema, so it drops into their current analysis
+- A generic CSV
+- A parquet artifact reference for large runs
 
-Separate them, because a transient dependency issue should fail readiness and
-take the pod out of rotation without triggering a restart.
+Read the actual column names from their result files rather than inventing
+them — matching their format is the entire point.
 
 ---
 
-## 11. CONFIG
+## PART F — ORDER OF WORK
 
-`api/config.py`, using `pydantic-settings`, everything from environment.
-
-```python
-class ApiSettings(BaseSettings):
-    service_name: str = "model-testing-framework-api"
-    service_version: str = "1.0.0"
-
-    host: str = "0.0.0.0"
-    port: int = 8080
-
-    data_dir: Path = Path("./data/api")
-    jobs_db_path: Path = Path("./data/api/jobs.db")
-
-    max_inline_rows: int = 1000
-    max_workers: int = 2
-    default_timeout_seconds: int = 900
-
-    download_timeout_seconds: int = 300
-    upload_timeout_seconds: int = 300
-
-    log_level: str = "INFO"
-```
-
-Do not read any existing `settings/cfg` values into here. The CLI config and
-the API config are separate concerns and coupling them means a change for one
-path breaks the other.
+1. **B4 prompt-level extraction.** Nothing else matters until query, context
+   and output are correctly joined from a trace. Verify against the known
+   trace where `infomax_search` errored — context should be empty *and*
+   `tool_errors` should be populated.
+2. **C5 the no-context guard.** Stop producing scores that are not
+   measurements.
+3. **C2 unit counting.** All three numbers must agree.
+4. **C1 time filtering.** Confirm the result count changes with the range.
+5. **B2 and B3 the level selector**, with evaluator gating.
+6. **C4 parsed rendering**, with a raw toggle.
+7. **C6, C7, C8** — verdict labels, identifier naming, peer states.
+8. **B4 thread level.**
+9. **D2 attribute breakdown.**
+10. **D4 benchmark view** with the trust gate.
+11. **E1 scheduled runs.**
+12. **E2 run comparison.**
+13. **B4 time range level** with paging.
 
 ---
 
-## 12. CONTAINER
+## PART G — ACCEPTANCE
 
-The consuming team operates this deployment, so the image must be
-self-contained and start without manual steps.
-
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-
-# System deps before Python deps so the layer caches across code changes
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Existing pinned dependencies stay exactly as they are. They are pinned for a
-# reason and this container is precisely why that no longer conflicts with
-# anything else.
-COPY requirements.txt requirements-api.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-api.txt
-
-COPY core/ ./core/
-COPY evaluation/ ./evaluation/
-COPY tests_module/ ./tests_module/
-COPY settings/ ./settings/
-COPY api/ ./api/
-
-RUN mkdir -p /app/data/api
-
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
-
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
-```
-
-**One uvicorn worker.** Concurrency comes from the process pool inside the
-app. Multiple uvicorn workers would each open the SQLite file and each hold
-their own pool, which is both wasteful and a source of lock contention.
-
-`requirements-api.txt` — additive only, never edit `requirements.txt`:
-
-```
-fastapi>=0.110,<1.0
-uvicorn[standard]>=0.27,<1.0
-pydantic>=2.6,<3.0
-pydantic-settings>=2.2,<3.0
-aiosqlite>=0.19,<1.0
-python-multipart>=0.0.9
-```
-
----
-
-## 13. TESTS
-
-`tests/api/`. Do not put these under the existing `tests/` root alongside the
-CLI tests — keep the two paths separately runnable.
-
-### Required coverage
-
-**Contract validation**
-- Both `inline` and `artifact` present → 422
-- Neither present → 422
-- `delivery` disagrees with which field is populated → 422
-- Unknown evaluator → 422
-- Level not in `supported_levels` → 422
-
-**Idempotency** — the most important tests here
-- Same key twice while running → same job_id, one execution
-- Same key after success → stored result returned, evaluator not called again
-  (assert on a call counter, not on timing)
-- Same key after failure → new attempt starts
-- Different key, same data → separate execution
-
-**Storage**
-- Checksum mismatch on download → raises, job fails, does not proceed
-- Row count mismatch → warns, proceeds
-- Missing `result_upload_url` with an oversized result → `PARTIAL` with a
-  clear error, not a truncated result
-
-**Mappers** — one test per mapper, with a fixture frame shaped like what the
-real evaluator produces. Take the fixtures from actual output files in `data/`
-rather than inventing shapes.
-
-**Regression** — run at least two existing CLI commands end to end after the
-`data_io` change and assert output is byte-identical to before. This is the
-test that proves you did not break the thing that already works.
-
----
-
-## 14. DO NOT
-
-| Do not | Why |
-|---|---|
-| Edit anything in `tests_module/` or `evaluation/` | That is the evaluation methodology. It is not yours to change. |
-| Change scoring logic, thresholds or prompts | Same. If something looks wrong, raise it, do not fix it. |
-| Modify `run.py` or the CLI dispatcher | Both entry points must keep working. |
-| Loosen any pin in `requirements.txt` | They are pinned deliberately. The container is what makes that safe. |
-| Add an ORM or a migration framework | One SQLite table does not need one. |
-| Cache evaluation results beyond idempotency | Stale scores are worse than slow ones. |
-| Use threads for the evaluators | They are CPU-bound. The GIL makes threads pointless here. |
-| Invent registry entries for modules that do not exist | The consumer reads capabilities and will call what you advertise. |
-| Return `NaN` in any JSON field | It is not valid JSON and will fail at the consumer. |
-| Silently truncate a large result | Fail explicitly instead. |
-
----
-
-## 15. BUILD ORDER
-
-Do these in order. Verify each before moving on.
-
-1. **`core/data_io.py` URL support.** Then run every existing CLI command and
-   confirm nothing changed. Nothing else starts until this is clean.
-2. **`api/contracts.py`.** Start the app with an empty router set and confirm
-   `/docs` renders the full schema.
-3. **`api/registry.py`.** Populate from the real `tests_module/`. Confirm
-   `/capabilities` returns every evaluator with correct metadata.
-4. **`api/jobs.py`.** Table, idempotency branching, status transitions. Test
-   this in isolation with a stub runner before wiring anything real.
-5. **`api/storage.py`.** Fetch with checksum verification, upload with
-   reference return.
-6. **One mapper — verdict.** Wire `hallucination` end to end. Prompt level,
-   inline delivery.
-7. **`POST /evaluate` and `GET /jobs/{id}/result`** for that one path.
-   Confirm the full round trip against a local caller.
-8. **Reference delivery.** Same evaluator, artifact instead of inline.
-9. **Remaining three mappers.** Scalars, distribution, tabular.
-10. **Remaining evaluators**, one at a time, verifying result shape against a
-    known-good CLI run for each.
-11. **Dockerfile.** Build, run, hit `/health`, run one evaluation inside the
-    container.
-12. **Full test suite** including the CLI regression tests.
-
----
-
-## 16. ACCEPTANCE CHECKLIST
-
-- [ ] Every existing CLI command produces byte-identical output to before
-- [ ] `/docs` renders the complete contract
-- [ ] `/capabilities` lists only evaluators that actually exist
-- [ ] Same idempotency key after success does not re-execute — proven by a
-      call counter, not by timing
-- [ ] Checksum mismatch fails the job rather than producing wrong numbers
-- [ ] Every result kind round-trips through the contract without loss
-- [ ] Tabular results are always uploaded, never inlined
-- [ ] `sample_size` on scalar results is the real n
-- [ ] No `NaN` appears in any response
-- [ ] Jobs survive a process restart
-- [ ] Container starts clean and passes its healthcheck
-- [ ] Nothing under `tests_module/` or `evaluation/` was modified
-- [ ] No file in `api/` exceeds 250 lines
-
----
-
-## 17. OPEN QUESTIONS — RAISE, DO NOT DECIDE
-
-If you hit any of these, stop and flag it rather than choosing:
-
-1. An evaluator's `supported_levels` is unclear from the code
-2. An evaluator returns a shape that does not fit any of the four result kinds
-3. `required_columns` cannot be determined without running the evaluator
-4. An existing module has a bug that would surface through the API
-5. Two evaluators disagree on a column name for the same concept
-
-These are decisions for the model team and the consuming team jointly. Getting
-them wrong quietly is worse than asking.
+- [ ] A prompt-level unit contains query, context and output joined from the
+      correct spans of one trace
+- [ ] Query renders as plain text, never as a JSON envelope
+- [ ] A trace whose tool call errored shows empty context **and** a recorded
+      tool error
+- [ ] The judge is never invoked without context
+- [ ] `NOT_APPLICABLE` is excluded from rate denominators
+- [ ] Fetched, evaluated and skipped counts reconcile and are all reported
+- [ ] Changing the time range changes the result count
+- [ ] Selecting Thread level disables sensitivity and agreement with a reason
+- [ ] Selecting Prompt level disables coherence with a reason
+- [ ] OTel and application identifiers are labelled distinctly
+- [ ] Annotations are pushed against the OTel span id
+- [ ] The five peer states are visually distinct
+- [ ] A score of zero and an absent score do not look the same
+- [ ] Auto-push is disabled while judge accuracy is below the gate
