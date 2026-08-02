@@ -1,1280 +1,987 @@
-# UI Build Prompt — Supervisor Evaluation Dashboard
+# Implementation Prompt — API Wrapper for the Model Testing Framework
 
-Paste this whole document to your coding agent. It is written to be executed
-section by section. Do not skip Section 5 — every later section depends on the
-tokens defined there.
-
----
-
-## 1. ROLE AND CONTEXT
-
-You are building the front end for the **Supervisor Evaluation Service** at a
-large bank. This service evaluates the output of an internal AI assistant used
-by financial advisors, and it needs a review interface that a human can use to
-inspect thousands of evaluated responses quickly.
-
-The reference for **information architecture only** is Google's LLM
-Comparator. Study its layout logic: a dense scrollable table of evaluated
-items on the left, a persistent analysis sidebar on the right, filter state
-surfaced as removable chips at the top, and per-row micro-visualisations that
-let a reviewer scan without expanding anything.
-
-**Do not copy its visual style.** Colours, typography, spacing, motion and
-component shapes must come from the design system defined in Section 5. The
-resemblance should be structural, not cosmetic — someone who knows LLM
-Comparator should recognise the *shape* of the workflow, not the product.
+Give this whole document to your coding agent. It is written to be executed
+against the existing `NONAPP-RIFAMCOE-AI-TEAMMATE-MAIN` repository.
 
 ---
 
-## 2. WHAT THE PRODUCT DOES
+## 1. WHAT YOU ARE BUILDING
 
-A reviewer selects a project and a time window, presses Evaluate, and the
-service:
+This repository currently runs as a set of local Python scripts, invoked
+through a CLI dispatcher:
 
-1. Pulls traces from an observability platform called **Overwatch**
-2. Runs our own evaluator (hallucination detection, using an LLM as a judge)
-3. Calls a partner team's evaluators over an API (sensitivity, explainability,
-   performance and others)
-4. Compares the two sets of verdicts and classifies where they agree
-5. Writes verdicts back to Overwatch as annotations
+```bash
+python run.py performance run --input data/sample_queries.xlsx
+```
 
-**Results stream in over Server-Sent Events while this happens.** The UI must
-show rows arriving progressively, not a spinner followed by a full table.
+You are adding a **thin HTTP API layer on top of it**, so that another
+service — the Supervisor Evaluation Service — can invoke the same evaluators
+over the network instead of someone running them on a laptop.
 
-### Core domain vocabulary
+### The single most important rule
 
-| Term | Meaning |
+**Do not rewrite, refactor or "improve" anything under `tests_module/` or
+`evaluation/`.**
+
+That code is the model team's evaluation methodology. It is the reason this
+integration is worth doing. Your job is to make it callable, not to change
+what it does.
+
+If you find yourself editing scoring logic, prompt text, metric calculations
+or thresholds — stop. You have gone outside scope.
+
+### What you may touch
+
+| Path | Change allowed |
 |---|---|
-| **Span** | One operation inside a trace — an LLM call, a tool call, a chain step |
-| **Trace** | One complete request cycle, containing many spans |
-| **Thread** | One conversation, containing many traces |
-| **Verdict** | A categorical outcome: `PASSED`, `REVIEW`, `FAILED` |
-| **Grounded** | The output is supported by the retrieved context |
-| **Hallucinated** | The output asserts something the context does not support |
-| **Agreement** | Whether two independent evaluators reached the same verdict |
-| **SME** | Subject matter expert — the human who resolves disagreements |
-| **Annotation** | A verdict written back onto the span in Overwatch |
+| `api/` | **New package.** All your work goes here. |
+| `core/data_io.py` | **One function only.** See §4. |
+| `Dockerfile` | New file. |
+| `requirements-api.txt` | New file. |
+| `tests_module/` | **Read only.** Import from it, never edit. |
+| `evaluation/` | **Read only.** |
+| `core/orchestrator.py` | **Read only.** Reuse its patterns, do not modify. |
+| `kpi_scripts/` | **Do not touch.** |
+| `run.py` | **Do not touch.** The CLI keeps working exactly as it does today. |
+
+Both entry points must coexist. After your change, this must still work
+unchanged:
+
+```bash
+python run.py performance run --input data/sample_queries.xlsx
+```
 
 ---
 
-## 3. USERS AND WHAT THEY NEED
+## 2. WHY THIS SHAPE
 
-### Persona A — Engineering reviewer (primary, daily)
-Runs evaluations after a prompt change and needs to know whether quality moved.
-Cares about: which spans failed, why, and whether the failure clusters around
-a particular kind of query.
+Read this section. It explains decisions that will otherwise look arbitrary
+when you hit them.
 
-### Persona B — SME reviewer (weekly)
-Opens the disagreement list, reads both machine verdicts, decides which is
-right. Their decision becomes training data. Cares about: seeing the full
-evidence for one span with minimum clicks.
+### Why a wrapper and not a rewrite
 
-### Persona C — Model risk reviewer (monthly, and during audit)
-Needs aggregate numbers and an export. Cares about: pass rate by category,
-sample sizes, and provenance — who scored this, with which evaluator version,
-when.
+The consuming team operates services. This team writes evaluation science.
+Rewriting the evaluators into a service architecture would take months and
+would put evaluation logic in the hands of people who did not design it.
 
-**Design implication:** the default view serves Persona A. Persona B gets a
-dedicated filtered view. Persona C gets the aggregation panel and export.
+A wrapper means the evaluators stay exactly where they are, owned by the
+people who understand them, and the only new surface is the HTTP layer.
 
----
+### Why the request carries a `level`
 
-## 4. TECH STACK — HARD CONSTRAINTS
+The consumer extracts data at three different granularities, and the volumes
+are not close:
 
-```
-React 18 with TypeScript, strict mode on
-Vite
-Tailwind CSS — core utility classes only, no arbitrary values in JSX
-TanStack Query for server state
-TanStack Virtual for list virtualisation
-Zustand for client UI state
-Recharts for charts
-lucide-react for icons
-react-router-dom v6
-```
-
-### Rules
-
-- **No `localStorage` or `sessionStorage`.** Persist view state in the URL
-  query string instead.
-- **No component file over 200 lines.** Split before you exceed it.
-- **No arbitrary Tailwind values** (`w-[347px]`). Extend the theme instead.
-- **Every list over 100 rows must be virtualised.** Time-range runs can return
-  200,000 rows.
-- **No `any`.** If a type is genuinely unknown use `unknown` and narrow it.
-- All colour, spacing, radius and duration values come from tokens. No raw hex
-  in components.
-
----
-
-## 5. DESIGN SYSTEM
-
-This is the section that makes the product feel like ours rather than a clone.
-Define these as Tailwind theme extensions in `tailwind.config.ts` and as CSS
-custom properties on `:root`.
-
-### 5.1 Concept
-
-**Dark, calm, instrument-panel.** The reviewer stares at this for an hour at a
-time. Surfaces recede, data comes forward. Colour is used almost exclusively
-for verdict semantics — nothing decorative competes with it.
-
-Reference feel: an aircraft systems display or a professional audio meter.
-Precise, quiet, high signal density, no visual noise.
-
-### 5.2 Colour tokens
-
-```ts
-// Surfaces — four levels of elevation, each a small step
-surface: {
-  base:     '#0B0F16',  // page background
-  raised:   '#121823',  // cards, table body
-  overlay:  '#1A2231',  // expanded rows, dropdowns, modals
-  hover:    '#212B3D',  // row hover, button hover
-}
-
-// Borders — two weights only
-border: {
-  subtle:   '#1E2735',  // between rows, inside cards
-  strong:   '#2C3849',  // card outlines, input borders
-  focus:    '#4C8DFF',  // focus ring, never used for anything else
-}
-
-// Text — four levels, strictly hierarchical
-text: {
-  primary:   '#E8EDF5',  // values, headings
-  secondary: '#96A3B8',  // labels, column headers
-  tertiary:  '#5E6B7E',  // metadata, timestamps, counts
-  disabled:  '#3C4655',
-}
-
-// Verdict semantics — the only saturated colour in the product
-verdict: {
-  pass:      '#2DD4A7',  // teal-green, not the usual green
-  passBg:    '#0E2A24',
-  passBorder:'#1B4A3F',
-
-  fail:      '#FF6B7A',  // coral-red, softer than pure red
-  failBg:    '#2B1219',
-  failBorder:'#4A1F29',
-
-  review:    '#FFB454',  // amber
-  reviewBg:  '#2B2113',
-  reviewBorder:'#4A3A1F',
-
-  neutral:   '#7B8CA6',  // no verdict yet
-  neutralBg: '#171E2A',
-}
-
-// Agreement — deliberately distinct from verdict so a reviewer never
-// confuses "both judges agreed it failed" with "one judge said fail"
-agreement: {
-  aligned:   '#4C8DFF',  // blue — both judges concur
-  alignedBg: '#111C33',
-  conflict:  '#C77DFF',  // violet — they disagree, this is the interesting case
-  conflictBg:'#1F1630',
-}
-
-// Data visualisation — for charts and sparklines only
-chart: {
-  primary:   '#4C8DFF',
-  secondary: '#C77DFF',
-  tertiary:  '#2DD4A7',
-  quaternary:'#FFB454',
-  grid:      '#1E2735',
-  axis:      '#5E6B7E',
-}
-```
-
-**Rule:** verdict colours never appear on anything that is not a verdict.
-Buttons, links and chart series use `chart.*` or neutral tokens.
-
-### 5.3 Typography
-
-```ts
-fontFamily: {
-  sans: ['Inter var', 'Inter', 'system-ui', 'sans-serif'],
-  mono: ['JetBrains Mono', 'SF Mono', 'Menlo', 'monospace'],
-}
-
-fontSize: {
-  '2xs': ['10px', { lineHeight: '14px', letterSpacing: '0.04em' }],
-  'xs':  ['11px', { lineHeight: '16px', letterSpacing: '0.02em' }],
-  'sm':  ['12px', { lineHeight: '18px' }],
-  'base':['13px', { lineHeight: '20px' }],
-  'md':  ['14px', { lineHeight: '22px' }],
-  'lg':  ['16px', { lineHeight: '24px' }],
-  'xl':  ['20px', { lineHeight: '28px', letterSpacing: '-0.01em' }],
-  '2xl': ['26px', { lineHeight: '32px', letterSpacing: '-0.02em' }],
-}
-```
-
-**Usage rules:**
-
-- Span IDs, checksums, scores, token counts, timestamps → **mono**
-- Everything else → **sans**
-- Column headers → `xs`, `font-medium`, `uppercase`, `tracking-wide`,
-  `text-secondary`
-- Table cell content → `base`
-- Metric card values → `2xl`, `font-semibold`, mono
-- Never use font weight above 600. This is an instrument, not a poster.
-
-### 5.4 Spacing
-
-Strict 4px base scale. Only these values exist:
-
-```
-0, 1(4px), 2(8px), 3(12px), 4(16px), 5(20px), 6(24px), 8(32px), 10(40px), 12(48px), 16(64px)
-```
-
-**Applied consistently:**
-
-- Card padding: `p-4`
-- Card gap in a grid: `gap-3`
-- Table cell padding: `px-3 py-2`
-- Expanded row padding: `p-4`
-- Section gap in sidebar: `gap-4`
-- Icon to label gap: `gap-2`
-
-### 5.5 Radius
-
-```
-none: 0
-sm:   3px    // chips, badges, small buttons
-md:   5px    // inputs, buttons
-lg:   8px    // cards, panels
-xl:   12px   // modals
-full: 9999px // pills, avatar
-```
-
-Deliberately tighter than typical. Sharp corners read as technical.
-
-### 5.6 Motion
-
-```ts
-transitionDuration: {
-  instant: '80ms',   // hover, focus — must feel immediate
-  fast:    '140ms',  // chip appear, badge change
-  normal:  '220ms',  // row expand, panel slide
-  slow:    '320ms',  // route transition
-}
-
-transitionTimingFunction: {
-  out:     'cubic-bezier(0.16, 1, 0.3, 1)',      // default, decelerating
-  inOut:   'cubic-bezier(0.65, 0, 0.35, 1)',     // symmetric moves
-  spring:  'cubic-bezier(0.34, 1.56, 0.64, 1)',  // new row arrival only
-}
-```
-
-**Rules:**
-
-- Hover states: `duration-instant`
-- Row expand/collapse: `duration-normal ease-out`, animate `max-height` and
-  `opacity` together
-- **New row arriving over SSE:** fade in over `duration-fast` with a 4px
-  upward translate, using `ease-spring`. Stagger by 20ms per row, capped at
-  10 rows of stagger so a burst of 500 does not queue for ten seconds.
-- Never animate `width` or `height` on anything containing a virtualised list
-- Wrap all motion in `@media (prefers-reduced-motion: no-preference)`
-
-### 5.7 Elevation
-
-No drop shadows on the dark surface — they read as smudges. Use background
-step plus a 1px border instead.
-
-```
-Level 0: bg-surface-base
-Level 1: bg-surface-raised   + border-border-subtle
-Level 2: bg-surface-overlay  + border-border-strong
-Level 3: bg-surface-overlay  + border-border-strong + ring-1 ring-black/40
-```
-
-### 5.8 Focus
-
-Every interactive element:
-
-```
-focus-visible:outline-none
-focus-visible:ring-2
-focus-visible:ring-border-focus
-focus-visible:ring-offset-2
-focus-visible:ring-offset-surface-base
-```
-
-Never remove the focus ring. Never use `outline: none` without a replacement.
-
----
-
-## 6. INFORMATION ARCHITECTURE
-
-### Routes
-
-```
-/                                    → redirect to /evaluate
-/evaluate                            → Run view (default)
-/results/:jobId                      → Results table
-/results/:jobId/spans/:spanId        → Results with a span expanded
-/review/:jobId                       → Disagreements only
-/benchmark                           → Judge validation
-/settings                            → Project defaults
-```
-
-### Left navigation rail
-
-Fixed 220px, collapsible to 56px icon-only. Collapse state in URL as
-`?nav=collapsed`.
-
-```
-┌────────────────────────┐
-│  ▣  Evaluation         │  ← wordmark, 20px icon + text-md
-├────────────────────────┤
-│  ▷  Run                │  /evaluate
-│  ▤  Results            │  /results
-│  ⚠  Review        [12] │  /review   badge = disagreement count
-│  ◈  Benchmark          │  /benchmark
-├────────────────────────┤
-│                        │
-│         (spacer)       │
-│                        │
-├────────────────────────┤
-│  ⚙  Settings           │
-│  ●  Connected          │  ← single status dot, see §12.4
-└────────────────────────┘
-```
-
-**Active item:** `bg-surface-hover`, `text-primary`, and a 2px
-`bg-border-focus` bar flush to the left edge of the rail.
-
-**Review badge:** only rendered when count > 0. `bg-agreement-conflict`,
-`text-surface-base`, `text-2xs`, `font-semibold`, `rounded-full`, `px-1.5`.
-
----
-
-## 7. LAYOUT — RESULTS VIEW
-
-This is the primary screen. Get this right and everything else follows.
-
-```
-┌──────┬──────────────────────────────────────────┬─────────────────────┐
-│      │  CONTROL BAR                    56px     │                     │
-│      ├──────────────────────────────────────────┤   ANALYSIS SIDEBAR  │
-│ NAV  │  FILTER CHIP BAR                40px     │        360px        │
-│ RAIL ├──────────────────────────────────────────┤      (sticky)       │
-│ 220  │  METRIC CARDS                   88px     │                     │
-│      ├──────────────────────────────────────────┤                     │
-│      │                                          │                     │
-│      │  RESULTS TABLE                           │                     │
-│      │  (virtualised, fills remaining height)   │                     │
-│      │                                          │                     │
-└──────┴──────────────────────────────────────────┴─────────────────────┘
-```
-
-**Breakpoints:**
-
-- `< 1280px` — sidebar collapses to a right-edge drawer, toggled by a button
-  in the control bar
-- `< 1024px` — nav rail auto-collapses to icons
-- `< 768px` — not supported. Show a message: "This view needs a wider screen."
-
-**Scroll:** only the table body scrolls. Control bar, chip bar, metric cards
-and sidebar are all fixed. The table header is sticky within the table.
-
----
-
-## 8. COMPONENT SPECIFICATIONS
-
-### 8.1 Control bar
-
-Height 56px. `bg-surface-raised`, `border-b border-border-subtle`,
-`px-4`, flex, `items-center`, `gap-3`.
-
-**Left group:**
-
-| Control | Width | Detail |
-|---|---|---|
-| Project select | 200px | Searchable. Placeholder "Select project". |
-| Time range picker | 240px | See §8.2 |
-| Evaluator multi-select | 180px | "All evaluators" when none chosen |
-
-**Right group** (`ml-auto`):
-
-| Control | Detail |
+| Level | Rows at 20K user load |
 |---|---|
-| Row count | `text-tertiary text-sm` — "1,247 spans" |
-| Export | Icon button, opens menu: CSV / XLSX |
-| Run Evaluate | Primary button, see below |
+| `prompt` | 1 |
+| `thread` | ~400 |
+| `time_range` | ~200,000 |
 
-**Evaluate button states:**
+That is five orders of magnitude. A single transport cannot serve all three,
+so the request declares which one it is and the payload arrives accordingly.
 
-```
-idle      "Run Evaluation"  bg-chart-primary  text-surface-base
-running   "Evaluating…"     bg-surface-hover  + 14px spinner + Cancel affordance
-done      returns to idle after 2s
-disabled  when no project selected — cursor-not-allowed, opacity-50,
-          tooltip "Select a project first"
-```
+### Why large payloads arrive as a URL
 
-While running, the button must show a **live count**: `Evaluating… 342 / 1,247`.
-Pull this from the SSE progress events.
+Two hundred thousand rows is not a reasonable HTTP body. So above a threshold
+the consumer writes the data to shared object storage and sends only a
+reference.
 
-### 8.2 Time range picker
+This works with almost no change on your side **because this codebase already
+reads a file into a pandas frame before doing anything with it**. That read
+step just needs to accept a URL as well as a path. That is the change in §4,
+and it is the only edit to existing code in this whole task.
 
-**Replaces any count-based limit control.** A reviewer thinks in time, not in
-row counts. "Last 100 spans" forces them to work out how many spans happened
-yesterday; "Yesterday" does not.
+### Why the API is asynchronous
 
-```
-┌───────────────────────────────────────┐
-│  Last 24 hours              ▾         │   trigger, shows current selection
-└───────────────────────────────────────┘
-       ↓ opens popover, 320px wide
-┌───────────────────────────────────────┐
-│  Last 1 hour                          │
-│  Last 6 hours                         │
-│  Last 24 hours                    ✓   │
-│  Last 7 days                          │
-│  Last 30 days                         │
-│  ─────────────────────────────────    │
-│  Custom range…                        │
-└───────────────────────────────────────┘
-```
+Some evaluators here make LLM calls, some involve human review steps. Those
+will not finish inside an HTTP request timeout. So `POST /evaluate` returns
+immediately with a job id, and the caller polls for the result.
 
-Custom opens a two-month calendar with time inputs. On apply, the trigger
-shows `12 Jul 09:00 → 13 Jul 17:30` in mono.
+### Why results have four shapes rather than one
 
-**URL sync:** `?from=2026-07-12T09:00:00Z&to=2026-07-13T17:30:00Z`
-Presets serialise as `?range=24h` so a shared link stays relative.
+The evaluators in this repository do not all produce the same kind of answer:
 
-**Guard rail:** if the selected range would exceed 50,000 spans, show an
-inline warning under the picker before the run starts:
-> ⚠ This range covers approximately 180,000 spans. Consider narrowing it or
-> the run may take over an hour.
+- `hallucination` produces a verdict per span
+- `agreement` produces a handful of scalars over a population
+- `sensitivity` produces a distribution across hundreds of perturbed pairs
+- `explainability` produces a table with several scored columns per row
 
-Do not block it. Warn and let them proceed.
+Forcing those into one response shape would either lose information or make
+every consumer special-case anyway. So the response is a tagged union and
+each evaluator declares which shape it returns.
 
-### 8.3 Filter chip bar
+---
 
-Height 40px, `bg-surface-base`, `border-b border-border-subtle`, `px-4`,
-horizontally scrollable if chips overflow.
+## 3. NEW PACKAGE LAYOUT
 
 ```
-Showing 847 of 1,247 spans   [Verdict: FAILED ×]  [Theme: RMD ×]  [Clear all]
+api/
+├── __init__.py
+├── main.py                 FastAPI app, lifespan, routes mounted
+├── config.py               settings, reads from env
+├── contracts.py            Pydantic models — this IS the Swagger spec
+├── registry.py             evaluator name → callable + metadata
+├── executor.py             runs an evaluator in a worker, maps its output
+├── jobs.py                 job state, idempotency, persistence
+├── storage.py              fetch input artifacts, upload result artifacts
+├── mappers/
+│   ├── __init__.py
+│   ├── base.py             ResultMapper interface
+│   ├── verdict.py          frame → VerdictResult[]
+│   ├── scalars.py          dict  → ScalarsResult
+│   ├── distribution.py     series → DistributionResult
+│   └── tabular.py          frame → TabularResult (uploads, returns ref)
+└── routers/
+    ├── __init__.py
+    ├── evaluate.py         POST /evaluate, GET /jobs/{id}/result
+    ├── capabilities.py     GET /capabilities
+    └── health.py           GET /health, GET /ready
 ```
 
-**Count text:** `text-sm text-secondary`. Show `of N` only when a filter is
-active.
+No file over 250 lines. Split before you exceed it.
 
-**Chip:** `bg-surface-overlay`, `border border-border-strong`, `rounded-sm`,
-`px-2 py-0.5`, `text-xs`. Label in `text-tertiary`, value in `text-primary`.
-The `×` is a 14px button with `hover:text-verdict-fail`.
+---
 
-**Clear all:** text button, only when ≥ 2 chips active.
+## 4. THE ONE CHANGE TO EXISTING CODE
 
-**Every chip is added from somewhere else** — clicking an aggregation row,
-clicking a verdict badge, clicking a chart segment. The bar itself is a
-display and removal surface, not an input.
+**File:** `core/data_io.py`
+**Function:** `read()`
 
-**URL sync:** each filter becomes a query param. Removing a chip removes the
-param. The URL must always be shareable and restore the exact view.
+Today it dispatches on file extension:
 
-### 8.4 Metric cards
-
-Four cards, `grid-cols-4 gap-3`, each `h-[88px]`, `bg-surface-raised`,
-`border border-border-subtle`, `rounded-lg`, `p-4`.
-
-| Card | Value | Sub-line |
-|---|---|---|
-| Hallucination rate | `24.3%` | `303 of 1,247 spans` |
-| Clean rate | `75.7%` | `944 of 1,247 spans` |
-| Judge agreement | `91.2%` | `110 disagreements` |
-| Coverage | `87.0%` | `162 spans not evaluated` |
-
-**Do not include a latency card.** Latency is not a quality signal and it
-competes for attention with the numbers that are.
-
-**Card internals:**
-
-```
-┌────────────────────────────┐
-│ HALLUCINATION RATE         │  text-2xs uppercase tracking-wide text-secondary
-│                            │
-│ 24.3%          ▲ 2.1       │  value: text-2xl font-semibold mono
-│                            │  delta: text-sm, verdict-fail if worse
-│ 303 of 1,247 spans         │  text-xs text-tertiary
-└────────────────────────────┘
+```python
+def read(path, sheet_name=None, **kwargs) -> pd.DataFrame:
+    p = Path(path)
+    if p.suffix == ".parquet":
+        return pd.read_parquet(p, **kwargs)
+    if p.suffix == ".json":
+        return pd.read_json(p, **kwargs)
+    if p.suffix in (".xlsx", ".xls"):
+        ...
+    if p.suffix == ".csv":
+        return pd.read_csv(p, **kwargs)
+    raise ValueError(f"Unsupported file type: {p.suffix}")
 ```
 
-**Delta rules:**
-- Only shown when a previous comparable run exists
-- Direction arrow + absolute change in percentage points
-- Colour by whether it is *good*, not by direction. Hallucination rate going
-  up is `verdict-fail`; clean rate going up is `verdict-pass`.
-- Tooltip on hover: "vs previous run on 30 Jul, 14:20"
+Add URL support **in front of** the existing logic. Do not restructure what is
+already there.
 
-**Agreement card is clickable** — navigates to `/review/:jobId`. Show
-`cursor-pointer` and `hover:bg-surface-hover`.
+```python
+from urllib.parse import urlparse
 
-### 8.5 Results table
+def _is_url(value: str) -> bool:
+    return urlparse(str(value)).scheme in ("http", "https")
 
-The core surface. Virtualised, sticky header, expandable rows.
 
-#### Columns
+def read(path, sheet_name=None, **kwargs) -> pd.DataFrame:
+    """
+    Smart reader — dispatches by extension.
 
-| # | Column | Width | Content |
+    Accepts a local path or an http(s) URL. URL support exists so that a
+    caller running elsewhere can hand over data without needing shared
+    filesystem access. Everything after the fetch is unchanged.
+    """
+    if _is_url(path):
+        return _read_from_url(str(path), sheet_name=sheet_name, **kwargs)
+
+    p = Path(path)
+    # ... existing logic untouched from here down
+```
+
+And the fetch helper:
+
+```python
+def _read_from_url(url: str, sheet_name=None, **kwargs) -> pd.DataFrame:
+    """
+    Fetch a remote artifact and parse it.
+
+    Streamed to a temp file rather than held in memory, because a time-range
+    extraction can be hundreds of megabytes and loading it twice — once as
+    bytes, once as a frame — would double peak memory for no reason.
+
+    Format is taken from the URL path, ignoring any query string, since
+    signed URLs carry signature parameters after the extension.
+    """
+    import tempfile
+    import requests
+
+    parsed = urlparse(url)
+    suffix = Path(parsed.path).suffix or ".parquet"
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        with requests.get(url, stream=True, timeout=300) as response:
+            response.raise_for_status()
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                tmp.write(chunk)
+        tmp_path = Path(tmp.name)
+
+    try:
+        return read(tmp_path, sheet_name=sheet_name, **kwargs)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+```
+
+**Verify after this change:** every existing CLI command still runs. This
+function is called from `pipeline.py`, `orchestrator.py` and every module
+under `tests_module/`. A regression here breaks the whole repository.
+
+---
+
+## 5. THE CONTRACT
+
+`api/contracts.py`. These models generate the OpenAPI document, so field names
+and types here are the agreement with the consumer. Do not rename anything
+without agreeing it with them first.
+
+### 5.1 Enums
+
+```python
+from enum import Enum
+
+class ExtractionLevel(str, Enum):
+    PROMPT = "prompt"
+    THREAD = "thread"
+    TIME_RANGE = "time_range"
+
+
+class DeliveryMode(str, Enum):
+    INLINE = "inline"
+    REFERENCE = "reference"
+
+
+class ArtifactFormat(str, Enum):
+    PARQUET = "parquet"
+    JSON = "json"
+    CSV = "csv"
+    XLSX = "xlsx"
+
+
+class JobStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    PARTIAL = "partial"
+
+
+class ResultKind(str, Enum):
+    VERDICT = "verdict"
+    SCALARS = "scalars"
+    DISTRIBUTION = "distribution"
+    TABULAR = "tabular"
+```
+
+### 5.2 Payload descriptors
+
+```python
+class ArtifactRef(BaseModel):
+    url: HttpUrl
+    format: ArtifactFormat = ArtifactFormat.PARQUET
+    row_count: int = Field(ge=0)
+    size_bytes: int = Field(ge=0)
+    checksum: str          # sha256 hex of the artifact bytes
+    expires_at: datetime
+    schema_version: str = "1.0"
+
+
+class InlinePayload(BaseModel):
+    rows: list[dict[str, Any]]
+    schema_version: str = "1.0"
+```
+
+### 5.3 Request
+
+```python
+class EvaluationRequest(BaseModel):
+    job_id: str
+    idempotency_key: str
+
+    evaluator: str
+    level: ExtractionLevel
+    delivery: DeliveryMode
+
+    inline: InlinePayload | None = None
+    artifact: ArtifactRef | None = None
+
+    result_upload_url: HttpUrl | None = None
+
+    options: dict[str, Any] = Field(default_factory=dict)
+    requested_at: datetime = Field(default_factory=datetime.utcnow)
+    timeout_seconds: int = Field(default=900, ge=1)
+```
+
+Add a model validator enforcing that **exactly one** of `inline` or `artifact`
+is populated, and that it matches the declared `delivery`. Reject the request
+with 422 otherwise — a mismatch here means the caller has a bug, and failing
+loudly is more useful than guessing which field to read.
+
+### 5.4 Result variants
+
+```python
+class VerdictResult(BaseModel):
+    kind: Literal[ResultKind.VERDICT] = ResultKind.VERDICT
+    span_id: str
+    verdict: str                      # e.g. FAILED, hallucinated, irrelevant
+    score: float | None = Field(default=None, ge=0.0, le=1.0)
+    reasoning: str | None = None
+
+
+class ScalarsResult(BaseModel):
+    kind: Literal[ResultKind.SCALARS] = ResultKind.SCALARS
+    metrics: dict[str, float]
+    sample_size: int = Field(ge=0)
+
+
+class DistributionResult(BaseModel):
+    kind: Literal[ResultKind.DISTRIBUTION] = ResultKind.DISTRIBUTION
+    metric_name: str
+    count: int = Field(ge=0)
+    mean: float
+    median: float
+    std_dev: float
+    minimum: float
+    maximum: float
+    percentiles: dict[str, float] = Field(default_factory=dict)
+    detail: ArtifactRef | None = None
+
+
+class TabularResult(BaseModel):
+    kind: Literal[ResultKind.TABULAR] = ResultKind.TABULAR
+    artifact: ArtifactRef
+    columns: list[str]
+    summary: dict[str, float] = Field(default_factory=dict)
+
+
+EvaluatorResult = VerdictResult | ScalarsResult | DistributionResult | TabularResult
+```
+
+`sample_size` on `ScalarsResult` is mandatory and must be the real n, not the
+requested n. A kappa over eight samples and one over eight hundred are not the
+same claim, and the consumer renders a warning below a threshold.
+
+### 5.5 Responses
+
+```python
+class EvaluationAccepted(BaseModel):
+    job_id: str
+    evaluator: str
+    status: Literal[JobStatus.QUEUED, JobStatus.RUNNING]
+    poll_url: str
+    estimated_seconds: int | None = None
+    accepted_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class EvaluationResponse(BaseModel):
+    job_id: str
+    evaluator: str
+    status: JobStatus
+
+    results: list[EvaluatorResult] = Field(default_factory=list)
+
+    evaluator_version: str
+    judge_model: str | None = None
+
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_seconds: float | None = None
+
+    error_code: str | None = None
+    error_message: str | None = None
+```
+
+`evaluator_version` is not optional. Six months from now someone will ask which
+version produced a given verdict, and the answer has to survive the evaluator
+being upgraded in the meantime.
+
+### 5.6 Capabilities
+
+```python
+class EvaluatorCapability(BaseModel):
+    name: str
+    display_name: str
+    description: str
+    version: str
+
+    supported_levels: list[ExtractionLevel]
+    result_kinds: list[ResultKind]
+
+    requires_llm: bool
+    typical_duration_seconds: int
+    max_rows: int | None = None
+    required_columns: list[str] = Field(default_factory=list)
+
+
+class CapabilitiesResponse(BaseModel):
+    service_name: str
+    service_version: str
+    evaluators: list[EvaluatorCapability]
+    max_inline_rows: int = 1000
+```
+
+---
+
+## 6. REGISTRY
+
+`api/registry.py`. Maps an evaluator name to the existing callable plus the
+metadata the capabilities endpoint returns.
+
+**Populate this by reading `tests_module/` — do not invent entries.** Every
+name here must correspond to a real module in that package. If a module you
+expect is missing, leave it out and note it rather than stubbing it.
+
+```python
+from dataclasses import dataclass, field
+from typing import Callable
+
+@dataclass(frozen=True)
+class EvaluatorSpec:
+    name: str
+    display_name: str
+    description: str
+    version: str
+
+    # Callable taking (frame: pd.DataFrame, options: dict) and returning
+    # whatever that evaluator naturally returns. Do not force a shape here —
+    # the mapper handles conversion.
+    runner: Callable
+
+    result_kind: ResultKind
+    supported_levels: list[ExtractionLevel]
+    requires_llm: bool
+    typical_duration_seconds: int
+    required_columns: list[str] = field(default_factory=list)
+    max_rows: int | None = None
+```
+
+### Expected registry contents
+
+Fill `runner`, `version` and `required_columns` from the actual code. The
+`result_kind` and `supported_levels` columns below are the design intent —
+confirm each against what the module really produces, and flag any mismatch
+rather than silently changing the mapping.
+
+| name | result_kind | levels | requires_llm |
 |---|---|---|---|
-| 1 | Expand | 32px | Chevron, rotates 90° when open |
-| 2 | Span | 120px | First 8 chars of span ID, mono, `text-tertiary`. Click copies full ID. |
-| 3 | Query | 1fr min 200px | Truncated at 2 lines |
-| 4 | Output | 1.5fr min 280px | Truncated at 3 lines, with signal chips beneath |
-| 5 | Our verdict | 110px | Badge |
-| 6 | Model team | 110px | Badge, or `—` if not run |
-| 7 | Agreement | 90px | Icon + label |
-| 8 | Score | 100px | Number + sparkline |
-| 9 | Actions | 44px | Kebab menu |
+| `hallucination` | VERDICT | prompt, thread | yes |
+| `generation` | VERDICT | prompt | yes |
+| `retrieval` | VERDICT | prompt | yes |
+| `prompt` | VERDICT | prompt | yes |
+| `tool_correctness` | VERDICT | prompt, thread | yes |
+| `cyber_guardrail` | VERDICT | prompt | yes |
+| `sensitivity` | DISTRIBUTION | time_range | no |
+| `replication` | DISTRIBUTION | time_range | no |
+| `performance` | TABULAR | time_range | yes |
+| `explainability` | TABULAR | time_range | yes |
+| `key_parameters` | TABULAR | time_range | yes |
+| `agreement` | SCALARS | time_range | no |
 
-**Row height:** 72px collapsed. Fixed — required for virtualisation.
+**`supported_levels` matters.** The consumer reads it and will not send a
+thread-level payload to an evaluator that only handles a population. Getting
+this wrong produces confusing failures at their end, so be conservative — if
+you are unsure whether an evaluator handles a level, leave it out.
 
-**Row states:**
+---
 
-```
-default   bg-surface-raised
-hover     bg-surface-hover, duration-instant
-expanded  bg-surface-overlay, border-l-2 border-l-border-focus
-selected  bg-surface-hover + ring-1 ring-inset ring-border-focus
-disagree  border-l-2 border-l-agreement-conflict   ← always, even collapsed
-```
+## 7. RESULT MAPPERS
 
-The disagreement left-border is the single most important scanning affordance
-on this screen. A reviewer should be able to find every disagreement by
-scrolling and looking at the left edge, without reading anything.
+`api/mappers/`. Each takes whatever the evaluator naturally returns and
+produces contract objects.
 
-#### Verdict badge
+**This is where the impedance mismatch gets absorbed.** The evaluators keep
+returning frames, dicts and series exactly as they do today. Nothing upstream
+of the mapper knows the API exists.
 
-```
-PASSED   bg-verdict-passBg   text-verdict-pass   border-verdict-passBorder
-FAILED   bg-verdict-failBg   text-verdict-fail   border-verdict-failBorder
-REVIEW   bg-verdict-reviewBg text-verdict-review border-verdict-reviewBorder
-—        text-text-disabled, no background
-```
+### 7.1 Interface
 
-`rounded-sm border px-2 py-0.5 text-2xs font-medium uppercase tracking-wide`
-
-**Clicking a badge filters the table to that verdict** and adds a chip.
-
-#### Agreement indicator
-
-| State | Icon | Colour | Label |
-|---|---|---|---|
-| Both passed | `CheckCheck` | `agreement.aligned` | "Aligned" |
-| Both failed | `CheckCheck` | `agreement.aligned` | "Aligned" |
-| Disagree | `GitCompareArrows` | `agreement.conflict` | "Conflict" |
-| One source | `Minus` | `text.tertiary` | "Single" |
-
-Icon 14px, label `text-2xs`. Clicking filters.
-
-#### Signal chips
-
-Under the output text, a row of chips showing the free-tier evaluator results —
-the ones computed without an LLM call.
-
-```
-[Grounded: No]  [Citations: 0]  [Tool: search_infomax]  [847 tok]
+```python
+class ResultMapper(Protocol):
+    def map(
+        self,
+        raw: Any,
+        *,
+        job_id: str,
+        evaluator: str,
+        upload_url: str | None,
+    ) -> list[EvaluatorResult]:
+        ...
 ```
 
-`text-2xs`, `rounded-sm`, `px-1.5 py-0.5`, `bg-surface-overlay`,
-`text-tertiary`. A failing signal uses `text-verdict-fail` on the value only,
-label stays tertiary.
+Return a list, because one evaluator can legitimately produce more than one
+result — a distribution plus the per-row detail behind it, for example.
 
-Max 4 chips. If more exist, show 3 and `+2` which reveals the rest on hover.
+### 7.2 Verdict mapper
 
-#### Score cell
+**Input:** a frame with one row per span.
+**Output:** one `VerdictResult` per row.
 
-```
-0.847
-▁▂▄█▆▃▁
-```
+Column names vary between modules in this repo, so resolve them from a
+candidate list rather than assuming:
 
-Number in mono `text-base`. Beneath it a 60×16px sparkline showing where this
-score falls in the run's distribution, with the current value marked.
-
-**Shared axis across all rows.** Each row auto-scaling would make the
-sparklines meaningless — the whole point is comparing this span against the
-population.
-
-#### Expanded row
-
-Opens beneath the row, `duration-normal`, `bg-surface-overlay`, `p-4`.
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  QUERY                                                              │
-│  What is 530?                                                       │
-│                                                                     │
-│  RETRIEVED CONTEXT                            3 chunks · 1,204 tok   │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │ An IRA is an Individual Retirement Account…                   │  │
-│  │ ── chunk 2 ──                                                 │  │
-│  │ The QRP to IRA Rollover Questionnaire…                        │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                                                                     │
-│  OUTPUT                                                             │
-│  530 refers to several IRS forms related to retirement plans:       │
-│  ▚▚▚▚▚▚▚▚▚▚▚▚ 5304-SIMPLE IRA, 5305-SEP ▚▚▚▚▚▚▚▚▚▚▚▚               │
-│  ↑ highlighted = not supported by the context above                 │
-│                                                                     │
-│  ┌─────────────────────────┬─────────────────────────┐              │
-│  │ OUR VERDICT             │ MODEL TEAM              │              │
-│  │ FAILED · 0.92           │ hallucinated · 0.87     │              │
-│  │ hallucination v1.2      │ hallucination v2.1      │              │
-│  │ claude-4-5-sonnet       │ tachyon-completions     │              │
-│  │                         │                         │              │
-│  │ The response claims 530 │ Output introduces form  │              │
-│  │ refers to IRS forms…    │ numbers absent from…    │              │
-│  └─────────────────────────┴─────────────────────────┘              │
-│                                                                     │
-│  SUGGESTION                                                         │
-│  Ground the response solely in the retrieved context. Avoid          │
-│  generating form numbers not present in the source.                 │
-│                                                                     │
-│  [ Copy span ID ]  [ Open in Overwatch ↗ ]  [ Push to Overwatch ]   │
-└─────────────────────────────────────────────────────────────────────┘
+```python
+SPAN_COLUMNS    = ["span_id", "Span ID", "spanId", "trace_id", "Trace ID"]
+VERDICT_COLUMNS = ["verdict", "score", "label", "llm_verdict", "result"]
+REASON_COLUMNS  = ["reasoning", "explanation", "rationale", "reason"]
 ```
 
-**Section labels:** `text-2xs uppercase tracking-wide text-secondary mb-1`
+Use the same `first_non_empty`-style resolution the existing code already uses
+for input columns, so behaviour is consistent with the CLI path.
 
-**Context block:** `bg-surface-base`, `rounded-md`, `p-3`, `max-h-[200px]`,
-scrollable, `font-mono text-sm`. Chunk separators are a 1px
-`border-border-subtle` line with a centred `text-2xs text-tertiary` label.
+**Score handling.** Some evaluators return `0` / `1`, others return categorical
+strings like `faithful` / `hallucinated`. Emit the categorical value in
+`verdict` and, when a numeric score exists, put it in `score` normalised to
+0..1. Never invent a score where the evaluator did not produce one — leave it
+`None`.
 
-**Ungrounded highlighting:** when the backend supplies character offsets,
-wrap those ranges in `bg-verdict-failBg text-verdict-fail rounded-sm px-0.5`.
-When offsets are absent, render plain text — never guess at the spans.
+### 7.3 Scalars mapper
 
-**Verdict comparison:** two columns, `gap-3`. When they disagree, both get
-`border border-agreement-conflict` and a small header strip reading
-"Judges disagree — SME review required" in `agreement.conflict`.
+**Input:** a flat dict, exactly what `evaluation/agreement.py` →
+`all_agreement_metrics()` already returns.
 
-**Push to Overwatch** lives here, at row level. **There must be no global push
-button.** The reviewer inspects one span, decides, and pushes that one.
+**Output:** one `ScalarsResult`.
 
-Push button states: `idle` → `pushing` (spinner, disabled) → `pushed` (check
-icon, `text-verdict-pass`, disabled, tooltip shows timestamp). Failure shows a
-toast with a Retry action, and the button returns to idle.
-
-**Pushed state must survive a refresh** — read it from the job payload, not
-component state.
-
-### 8.6 Analysis sidebar
-
-360px, sticky, `overflow-y-auto`, `bg-surface-raised`,
-`border-l border-border-subtle`. Sections separated by
-`border-t border-border-subtle`, each `p-4`.
-
-#### Section 1 — Score distribution
-
-Histogram, 20 buckets, height 120px.
-
-```
-SCORE DISTRIBUTION
-
-     ▁▂▅███▆▃▂▁
-  0.0            1.0
-  ← hallucinated    grounded →
+```python
+{
+    "percentage_agreement": 0.78,
+    "cohens_kappa_weighted": 0.71,
+    "pearson_r": 0.84,
+    "pearson_p_value": 0.001,
+}
 ```
 
-Bars use `chart.primary`. Bars below the failure threshold use
-`verdict.fail`. Hovering a bar shows a tooltip with the count and filters on
-click.
+Coerce every value to `float`. Drop any key whose value is `NaN` rather than
+serialising it — `NaN` is not valid JSON and will fail at the consumer.
 
-#### Section 2 — Breakdown by attribute ★
+`sample_size` comes from the length of the frame the metrics were computed
+over, not from the request.
 
-**This is the most important panel in the product.** It is what makes this
-tool different from a generic trace viewer. Build it carefully.
+### 7.4 Distribution mapper
 
-```
-BREAKDOWN BY                    [ Theme ▾ ]
+**Input:** a numeric series or a frame with a score column.
+**Output:** one `DistributionResult`, plus a `detail` reference when the row
+count exceeds the inline threshold.
 
-Category            n     Pass rate
-────────────────────────────────────────
-Account balance    67   ███░░░░░░░  52%   ⚠
-IRA rollover       98   ███████░░░  74%
-RMD queries       142   █████████░  88%
-Compliance        203   █████████▉  94%
-Small sample (n<10) — 4 groups hidden  ▾
-```
-
-**Grouping selector:** Theme, Entitlement, Tool used, Channel, Model.
-The available list comes from the backend, not a hardcoded array.
-
-**Sort:** worst pass rate first by default. This is deliberate — the reviewer
-should see the problem, not the alphabet.
-
-**Bar:** 80px wide, 6px tall, `rounded-full`. Fill uses `verdict.pass`, track
-uses `surface.overlay`. Below 60% the fill switches to `verdict.fail`.
-
-**Small samples:** any group with n < 10 is collapsed behind a disclosure and
-marked. A pass rate of 33% over three spans is not a finding, and presenting
-it next to a rate over two hundred spans invites a wrong conclusion.
-
-**Warning icon** on any group more than 15 percentage points below the overall
-rate. Tooltip: "Pass rate 22 points below the run average."
-
-**Clicking a row filters the table** to that group and adds a chip.
-
-#### Section 3 — Disagreements
-
-```
-DISAGREEMENTS                              110
-
-  Both passed              892   ████████░░
-  Both failed              245   ██░░░░░░░░
-  Judges disagree          110   █░░░░░░░░░
-
-  [ Review 110 disagreements → ]
+```python
+DistributionResult(
+    metric_name=metric_name,
+    count=len(series),
+    mean=float(series.mean()),
+    median=float(series.median()),
+    std_dev=float(series.std()),
+    minimum=float(series.min()),
+    maximum=float(series.max()),
+    percentiles={
+        "p05": float(series.quantile(0.05)),
+        "p25": float(series.quantile(0.25)),
+        "p50": float(series.quantile(0.50)),
+        "p75": float(series.quantile(0.75)),
+        "p95": float(series.quantile(0.95)),
+    },
+    detail=detail_ref,
+)
 ```
 
-The button navigates to `/review/:jobId`.
+The summary travels inline so the consumer can render a chart without
+downloading anything. `detail` is there for drill-down only.
 
-#### Section 4 — Failure patterns
+### 7.5 Tabular mapper
 
-Clustered judge explanations, so a reviewer sees recurring causes instead of
-reading 300 individual strings.
+**Input:** a frame, typically hundreds of thousands of rows.
+**Output:** one `TabularResult` with the frame uploaded and referenced.
+
+Always upload. Never inline a tabular result, regardless of size — the
+consumer's handling for this kind assumes a reference, and a size-dependent
+shape would make their code branch on something they cannot predict.
+
+Include a `summary` dict with two or three headline numbers, computed from
+whichever numeric columns exist. Same reasoning as above: it lets the
+dashboard show something immediately.
+
+---
+
+## 8. STORAGE
+
+`api/storage.py`. Two responsibilities.
+
+### 8.1 Fetching input
+
+When `delivery` is `reference`, fetch and verify before doing anything else:
+
+```python
+def fetch_input(artifact: ArtifactRef) -> pd.DataFrame:
+    """
+    Download, verify, parse.
+
+    Checksum is verified rather than trusted. A truncated download that
+    silently produces a short frame would corrupt every metric computed from
+    it, and that failure is invisible without this check.
+    """
+```
+
+Verify `checksum` against the downloaded bytes. On mismatch raise, do not
+proceed — the resulting numbers would be wrong and nobody would know.
+
+Log a warning if `row_count` does not match the parsed frame, but continue —
+a row count drift is worth knowing about but is not necessarily corruption.
+
+Route this through `core.data_io.read()` so URL and local handling stay in one
+place.
+
+### 8.2 Uploading results
+
+When a result is too large to inline and `result_upload_url` was supplied:
+
+```python
+def upload_result(
+    frame: pd.DataFrame,
+    upload_url: str,
+    fmt: ArtifactFormat = ArtifactFormat.PARQUET,
+) -> ArtifactRef:
+    """
+    Serialise, PUT to the pre-signed URL, return a reference.
+
+    The URL arrives with the request rather than being negotiated, so no
+    round trip is needed to find out where results should go.
+    """
+```
+
+Default to parquet. At two hundred thousand rows it is roughly an order of
+magnitude smaller than xlsx and materially faster to read back.
+
+Compute the sha256 of the serialised bytes and put it in the returned
+`ArtifactRef`, so the consumer can verify what they fetch.
+
+**If `result_upload_url` is absent and the result is too large to inline:**
+return a `PARTIAL` status with an explicit error message saying an upload URL
+was required. Do not silently truncate.
+
+---
+
+## 9. JOB HANDLING
+
+`api/jobs.py`.
+
+### 9.1 Storage
+
+SQLite via `aiosqlite`, in a file under the configured data directory. Not
+in-memory — jobs must survive a restart, otherwise a run in flight during a
+deploy is lost with no way to tell the consumer what happened.
+
+```sql
+CREATE TABLE IF NOT EXISTS jobs (
+    job_id            TEXT PRIMARY KEY,
+    idempotency_key   TEXT NOT NULL UNIQUE,
+    evaluator         TEXT NOT NULL,
+    level             TEXT NOT NULL,
+    status            TEXT NOT NULL,
+    request_json      TEXT NOT NULL,
+    result_json       TEXT,
+    error_code        TEXT,
+    error_message     TEXT,
+    started_at        TEXT,
+    completed_at      TEXT,
+    created_at        TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_idem   ON jobs(idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+```
+
+The unique constraint on `idempotency_key` is the enforcement point, not just
+an optimisation. It makes duplicate execution impossible at the storage layer
+rather than relying on every code path remembering to check first.
+
+### 9.2 Idempotency
+
+This is the behaviour the consumer depends on. Get it exactly right.
 
 ```
-FAILURE PATTERNS
-
-  Invented identifiers not in context     48
-  Answered from general knowledge         31
-  Context retrieved was off-topic         19
-  Contradicted the retrieved source       12
+POST arrives with idempotency_key K
+    │
+    ├─ K not seen         → create job, start work, return 202 QUEUED
+    │
+    ├─ K seen, RUNNING    → return 202 with the existing job_id and poll_url
+    │                        Do NOT start a second run.
+    │
+    ├─ K seen, SUCCEEDED  → return 200 with the stored result
+    │                        Do NOT re-run. This is the whole point.
+    │
+    └─ K seen, FAILED     → create a new attempt under the same job_id,
+                             start work, return 202
 ```
 
-Clicking a pattern filters the table.
+The `SUCCEEDED` branch is what prevents paying twice for an LLM call when a
+response was lost in transit rather than the work actually failing.
 
-Clustering happens on the backend. The UI renders whatever labels it receives
-and must not attempt to cluster client-side.
+The `FAILED` branch allows retry, because a genuine failure should be
+retryable — the consumer will retry with the same key after backoff.
 
-#### Section 5 — Live event stream
+### 9.3 Execution
 
-Only visible while a run is in progress. Auto-hides 5 seconds after
-completion.
+`api/executor.py`. Run the evaluator off the event loop:
 
-```
-LIVE                                    ● running
-
-  12:04:31  Extracted 1,247 spans
-  12:04:33  Response length: 1,203 passed
-  12:04:35  Context selection complete
-  12:04:41  Judge: 340 / 1,203
-  12:04:44  ⚠ Disagreement on span 192b8b03
+```python
+result = await asyncio.get_running_loop().run_in_executor(
+    process_pool, _run_evaluator_sync, evaluator_name, frame, options
+)
 ```
 
-Monospace, `text-xs`. Newest at the bottom, auto-scrolled unless the user has
-scrolled up — in which case show a "Jump to latest" pill and hold position.
+Use a `ProcessPoolExecutor`, not threads. The evaluators here are CPU-bound —
+pandas operations, similarity computation, statistical work — and threads
+would be blocked by the GIL. Size the pool from config, default 2.
 
-Cap at 200 entries in the DOM. Older ones are dropped.
+Guard with the request's `timeout_seconds`. On timeout mark the job `FAILED`
+with `error_code = "TIMEOUT"` and a message naming the evaluator and the limit
+it exceeded.
 
-### 8.7 Review view (`/review/:jobId`)
+---
 
-Same table, pre-filtered to disagreements, with two differences:
+## 10. ENDPOINTS
 
-1. The **Agreement** column is replaced by an **SME decision** column
-   containing three buttons: `Ours` / `Theirs` / `Neither`
-2. Rows are expanded by default, because the reviewer is here to read
-
-Recording a decision:
-- Optimistic update — the row shows the decision immediately
-- Row fades to `opacity-60` and moves to the bottom of the list after 400ms
-- The sidebar counter decrements
-- On failure, revert and show a toast
-
-**Keyboard flow** — this view will be used for an hour at a time:
+### `POST /evaluate`
 
 ```
-j / ↓     next row
-k / ↑     previous row
-1         decide: ours
-2         decide: theirs
-3         decide: neither
-o         open in Overwatch
-Enter     expand / collapse
-?         shortcuts overlay
+202  EvaluationAccepted     accepted, work started
+200  EvaluationResponse     idempotent replay of a completed job
+422  validation error       payload shape wrong, unknown evaluator,
+                            or level not supported by that evaluator
+503  service error          worker pool unavailable
+```
+
+Validate before accepting:
+
+1. `evaluator` exists in the registry
+2. `level` is in that evaluator's `supported_levels`
+3. Payload matches the declared `delivery`
+4. `required_columns` are present in the data
+
+Failing at submission with a clear message is far better than failing five
+minutes into a run with a `KeyError` from deep inside a scoring function.
+
+### `GET /jobs/{job_id}/result`
+
+```
+200  EvaluationResponse     any status, terminal or not
+404  unknown job
+```
+
+Return the response object regardless of status. The consumer polls this and
+reads `status` to decide whether to keep polling.
+
+### `GET /capabilities`
+
+Returns `CapabilitiesResponse` built from the registry. No arguments.
+
+This is how the consumer discovers what exists. An evaluator added here
+becomes visible to them without a release on their side.
+
+### `GET /health` and `GET /ready`
+
+`/health` — process is up. Cheap, no dependencies touched.
+
+`/ready` — dependencies are usable. Check the SQLite file is writable and the
+process pool is alive.
+
+Separate them, because a transient dependency issue should fail readiness and
+take the pod out of rotation without triggering a restart.
+
+---
+
+## 11. CONFIG
+
+`api/config.py`, using `pydantic-settings`, everything from environment.
+
+```python
+class ApiSettings(BaseSettings):
+    service_name: str = "model-testing-framework-api"
+    service_version: str = "1.0.0"
+
+    host: str = "0.0.0.0"
+    port: int = 8080
+
+    data_dir: Path = Path("./data/api")
+    jobs_db_path: Path = Path("./data/api/jobs.db")
+
+    max_inline_rows: int = 1000
+    max_workers: int = 2
+    default_timeout_seconds: int = 900
+
+    download_timeout_seconds: int = 300
+    upload_timeout_seconds: int = 300
+
+    log_level: str = "INFO"
+```
+
+Do not read any existing `settings/cfg` values into here. The CLI config and
+the API config are separate concerns and coupling them means a change for one
+path breaks the other.
+
+---
+
+## 12. CONTAINER
+
+The consuming team operates this deployment, so the image must be
+self-contained and start without manual steps.
+
+```dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# System deps before Python deps so the layer caches across code changes
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Existing pinned dependencies stay exactly as they are. They are pinned for a
+# reason and this container is precisely why that no longer conflicts with
+# anything else.
+COPY requirements.txt requirements-api.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-api.txt
+
+COPY core/ ./core/
+COPY evaluation/ ./evaluation/
+COPY tests_module/ ./tests_module/
+COPY settings/ ./settings/
+COPY api/ ./api/
+
+RUN mkdir -p /app/data/api
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+```
+
+**One uvicorn worker.** Concurrency comes from the process pool inside the
+app. Multiple uvicorn workers would each open the SQLite file and each hold
+their own pool, which is both wasteful and a source of lock contention.
+
+`requirements-api.txt` — additive only, never edit `requirements.txt`:
+
+```
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.27,<1.0
+pydantic>=2.6,<3.0
+pydantic-settings>=2.2,<3.0
+aiosqlite>=0.19,<1.0
+python-multipart>=0.0.9
 ```
 
 ---
 
-## 9. DATA CONTRACTS
+## 13. TESTS
 
-Mirror the backend exactly. Do not invent fields.
+`tests/api/`. Do not put these under the existing `tests/` root alongside the
+CLI tests — keep the two paths separately runnable.
 
-```ts
-export type Verdict = 'PASSED' | 'REVIEW' | 'FAILED';
+### Required coverage
 
-export type Agreement =
-  | 'agree_pass'
-  | 'agree_fail'
-  | 'disagree'
-  | 'single_source'
-  | 'not_comparable';
+**Contract validation**
+- Both `inline` and `artifact` present → 422
+- Neither present → 422
+- `delivery` disagrees with which field is populated → 422
+- Unknown evaluator → 422
+- Level not in `supported_levels` → 422
 
-export type ExtractionLevel = 'prompt' | 'thread' | 'time_range';
+**Idempotency** — the most important tests here
+- Same key twice while running → same job_id, one execution
+- Same key after success → stored result returned, evaluator not called again
+  (assert on a call counter, not on timing)
+- Same key after failure → new attempt starts
+- Different key, same data → separate execution
 
-export interface SourceVerdict {
-  source: string;              // 'supervisor-eval-service' | 'model-team'
-  evaluator: string;
-  verdict: string;
-  score: number | null;
-  reasoning: string | null;
-  evaluatorVersion: string;
-  judgeModel: string | null;
-  evaluatedAt: string;         // ISO 8601
-}
+**Storage**
+- Checksum mismatch on download → raises, job fails, does not proceed
+- Row count mismatch → warns, proceeds
+- Missing `result_upload_url` with an oversized result → `PARTIAL` with a
+  clear error, not a truncated result
 
-export interface SignalChip {
-  label: string;
-  value: string;
-  status: 'ok' | 'warn' | 'fail' | 'neutral';
-}
+**Mappers** — one test per mapper, with a fixture frame shaped like what the
+real evaluator produces. Take the fixtures from actual output files in `data/`
+rather than inventing shapes.
 
-export interface HighlightRange {
-  start: number;               // character offset into output
-  end: number;
-  reason: string;
-}
-
-export interface SpanResult {
-  spanId: string;
-  traceId: string;
-  threadId: string | null;
-  timestamp: string;
-
-  query: string;
-  retrievedContext: string;
-  contextChunks: number;
-  contextTokens: number;
-  output: string;
-
-  sources: SourceVerdict[];
-  agreement: Agreement;
-  action: 'auto_push' | 'auto_push_alert' | 'human_review' | 'provisional';
-
-  signals: SignalChip[];
-  highlights: HighlightRange[];
-  suggestion: string | null;
-
-  attributes: Record<string, string>;   // theme, entitlement, tool, channel
-
-  humanVerdict: string | null;
-  humanReviewer: string | null;
-  humanReviewedAt: string | null;
-
-  pushedAt: string | null;
-}
-
-export interface AttributeGroup {
-  key: string;
-  label: string;
-  count: number;
-  passRate: number;            // 0..1
-  avgScore: number;
-  isSmallSample: boolean;      // count < 10
-}
-
-export interface FailurePattern {
-  label: string;
-  count: number;
-  spanIds: string[];
-}
-
-export interface JobSummary {
-  jobId: string;
-  project: string;
-  level: ExtractionLevel;
-  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'partial';
-
-  totalSpans: number;
-  evaluatedSpans: number;
-
-  agreePass: number;
-  agreeFail: number;
-  disagree: number;
-  singleSource: number;
-
-  hallucinationRate: number;
-  agreementRate: number;
-  coverage: number;
-
-  scoreDistribution: { bucket: number; count: number }[];
-  attributeGroups: Record<string, AttributeGroup[]>;   // keyed by grouping
-  failurePatterns: FailurePattern[];
-
-  evaluatorsRun: string[];
-  evaluatorsFailed: string[];
-
-  previousJobId: string | null;
-  startedAt: string;
-  completedAt: string | null;
-}
-```
-
-### SSE event types
-
-```ts
-type ProgressEvent =
-  | { event: 'started';    data: { jobId: string; level: string } }
-  | { event: 'extracted';  data: { jobId: string; rows: number } }
-  | { event: 'span_scored'; data: { span: SpanResult } }
-  | { event: 'disagreement'; data: { spanId: string } }
-  | { event: 'aggregated'; data: { summary: JobSummary } }
-  | { event: 'pushed';     data: { annotations: number } }
-  | { event: 'completed';  data: { jobId: string; status: string } }
-  | { event: 'error';      data: { error: string } };
-```
-
-**Handling:** `span_scored` appends to the table. Batch DOM updates with
-`requestAnimationFrame` — at 200 rows per second, updating per event will
-drop frames.
+**Regression** — run at least two existing CLI commands end to end after the
+`data_io` change and assert output is byte-identical to before. This is the
+test that proves you did not break the thing that already works.
 
 ---
 
-## 10. STATE MANAGEMENT
+## 14. DO NOT
 
-### Server state — TanStack Query
-
-```ts
-useJob(jobId)                       // 30s stale, no refetch on focus
-useSpans(jobId, filters)            // infinite query, 200 per page
-useAttributeGroups(jobId, groupBy)  // 5min stale
-useCapabilities()                   // 10min stale
-```
-
-### Client state — Zustand
-
-```ts
-interface UiStore {
-  expandedSpanIds: Set<string>;
-  selectedSpanId: string | null;
-  sidebarCollapsed: boolean;
-  navCollapsed: boolean;
-  groupBy: string;
-  liveEvents: ProgressEvent[];      // capped at 200
-}
-```
-
-### URL state — the source of truth for anything shareable
-
-```
-?from=…&to=…&verdict=FAILED&agreement=disagree&theme=RMD&groupBy=theme&span=192b8b03
-```
-
-Every filter, the expanded span, and the grouping selection live here. Pasting
-a URL into a colleague's chat must reproduce the exact view.
-
-Use `useSearchParams`. Debounce writes by 300ms so dragging a slider does not
-create fifty history entries.
-
----
-
-## 11. PERFORMANCE
-
-| Requirement | Target |
+| Do not | Why |
 |---|---|
-| First contentful paint | < 1.2s |
-| Table interactive with 1,000 rows | < 300ms |
-| Scroll at 200,000 rows | 60fps sustained |
-| Row expand | < 100ms to first paint |
-| SSE burst of 500 rows | no dropped frames |
-
-### Techniques
-
-- **Virtualise** above 100 rows. `overscan: 8`.
-- **Memoise every row.** `React.memo` with a comparator on `spanId`,
-  `agreement`, `pushedAt` and expanded state. A row must not re-render because
-  a sibling changed.
-- **Batch SSE** into `requestAnimationFrame`. Never `setState` per event.
-- **Debounce** filter inputs at 300ms, search at 250ms.
-- **Lazy load** the expanded row body. Do not mount context and reasoning for
-  1,000 collapsed rows.
-- **Truncate on the server.** Do not ship 8KB of context per row for a
-  collapsed view — request it on expand.
-- **Code split** by route.
+| Edit anything in `tests_module/` or `evaluation/` | That is the evaluation methodology. It is not yours to change. |
+| Change scoring logic, thresholds or prompts | Same. If something looks wrong, raise it, do not fix it. |
+| Modify `run.py` or the CLI dispatcher | Both entry points must keep working. |
+| Loosen any pin in `requirements.txt` | They are pinned deliberately. The container is what makes that safe. |
+| Add an ORM or a migration framework | One SQLite table does not need one. |
+| Cache evaluation results beyond idempotency | Stale scores are worse than slow ones. |
+| Use threads for the evaluators | They are CPU-bound. The GIL makes threads pointless here. |
+| Invent registry entries for modules that do not exist | The consumer reads capabilities and will call what you advertise. |
+| Return `NaN` in any JSON field | It is not valid JSON and will fail at the consumer. |
+| Silently truncate a large result | Fail explicitly instead. |
 
 ---
 
-## 12. STATES
+## 15. BUILD ORDER
 
-### 12.1 Empty
+Do these in order. Verify each before moving on.
 
-| Situation | Message | Action |
-|---|---|---|
-| No job selected | "Select a project and time range, then run an evaluation." | — |
-| Run returned nothing | "No spans found in this time range." | "Widen range" |
-| All filtered out | "No spans match these filters." | "Clear filters" |
-| No disagreements | "All evaluators agreed on this run." | "View all results" |
-
-Centre the block, `text-secondary`, with a 32px `text-tertiary` icon above.
-No illustrations.
-
-### 12.2 Loading
-
-**Never a full-page spinner.** Skeletons that match final layout:
-
-- Metric cards: pulsing `bg-surface-hover` blocks at the value position
-- Table: 8 skeleton rows at exactly 72px
-- Sidebar: skeleton bars matching the panel shapes
-
-Pulse: `animate-pulse` at 1.8s.
-
-### 12.3 Error
-
-| Error | Presentation |
-|---|---|
-| Job failed | Inline banner above the table, `verdict-fail`, with Retry |
-| Partial | Amber banner: "3 of 11 evaluators failed" + "See details" |
-| SSE dropped | Toast: "Live updates disconnected" + Reconnect. Table keeps existing rows. |
-| Push failed | Toast with Retry, button returns to idle |
-
-### 12.4 Connection status
-
-**One indicator only.** The current UI shows both "API Connected" and
-"Healthy" — they say the same thing, so remove one.
-
-Bottom of the nav rail: a 6px dot plus a label.
-
-```
-● Connected      verdict.pass
-● Degraded       verdict.review    (evaluator service unreachable)
-● Disconnected   verdict.fail
-```
+1. **`core/data_io.py` URL support.** Then run every existing CLI command and
+   confirm nothing changed. Nothing else starts until this is clean.
+2. **`api/contracts.py`.** Start the app with an empty router set and confirm
+   `/docs` renders the full schema.
+3. **`api/registry.py`.** Populate from the real `tests_module/`. Confirm
+   `/capabilities` returns every evaluator with correct metadata.
+4. **`api/jobs.py`.** Table, idempotency branching, status transitions. Test
+   this in isolation with a stub runner before wiring anything real.
+5. **`api/storage.py`.** Fetch with checksum verification, upload with
+   reference return.
+6. **One mapper — verdict.** Wire `hallucination` end to end. Prompt level,
+   inline delivery.
+7. **`POST /evaluate` and `GET /jobs/{id}/result`** for that one path.
+   Confirm the full round trip against a local caller.
+8. **Reference delivery.** Same evaluator, artifact instead of inline.
+9. **Remaining three mappers.** Scalars, distribution, tabular.
+10. **Remaining evaluators**, one at a time, verifying result shape against a
+    known-good CLI run for each.
+11. **Dockerfile.** Build, run, hit `/health`, run one evaluation inside the
+    container.
+12. **Full test suite** including the CLI regression tests.
 
 ---
 
-## 13. ACCESSIBILITY
+## 16. ACCEPTANCE CHECKLIST
 
-- Contrast: 4.5:1 for body text, 3:1 for large text and UI borders. Verify
-  every verdict colour against its background token.
-- **Never encode meaning in colour alone.** Every verdict badge carries text.
-  Every agreement state carries an icon and a label.
-- Table uses semantic `<table>` with `<th scope="col">`. Not divs.
-- Expandable rows: `aria-expanded`, `aria-controls`.
-- Live region on the results table: `aria-live="polite"` announcing
-  "247 spans evaluated" — throttled to once every 3 seconds, not per row.
-- Full keyboard reachability. Logical tab order. Visible focus at all times.
-- Modals trap focus and restore it on close.
-- Respect `prefers-reduced-motion` for every transition defined in §5.6.
-
----
-
-## 14. DO NOT BUILD
-
-These were explicitly removed in review. Do not reintroduce them.
-
-| Item | Why |
-|---|---|
-| Evaluator visibility panel | Adds no reviewer value |
-| Rollout telemetry section | Its numbers contradicted the chart above it |
-| Judge / suggestion model labels in the header | Backend detail, not user-facing |
-| Duplicate connection indicators | Two controls saying one thing |
-| Elapsed timer | Nobody watches it |
-| Latency metric card | Not a quality signal, competes for attention |
-| Global "Push to Overwatch" button | Push is per-span, after review |
-| Count-based limit ("last 100") | Replaced by the time range picker |
-| Backend API URL visible in the address bar | Config, not navigation |
+- [ ] Every existing CLI command produces byte-identical output to before
+- [ ] `/docs` renders the complete contract
+- [ ] `/capabilities` lists only evaluators that actually exist
+- [ ] Same idempotency key after success does not re-execute — proven by a
+      call counter, not by timing
+- [ ] Checksum mismatch fails the job rather than producing wrong numbers
+- [ ] Every result kind round-trips through the contract without loss
+- [ ] Tabular results are always uploaded, never inlined
+- [ ] `sample_size` on scalar results is the real n
+- [ ] No `NaN` appears in any response
+- [ ] Jobs survive a process restart
+- [ ] Container starts clean and passes its healthcheck
+- [ ] Nothing under `tests_module/` or `evaluation/` was modified
+- [ ] No file in `api/` exceeds 250 lines
 
 ---
 
-## 15. FILE STRUCTURE
+## 17. OPEN QUESTIONS — RAISE, DO NOT DECIDE
 
-```
-src/
-├── app/
-│   ├── router.tsx
-│   ├── providers.tsx
-│   └── layout/
-│       ├── AppShell.tsx
-│       ├── NavRail.tsx
-│       └── AnalysisSidebar.tsx
-├── features/
-│   ├── evaluate/
-│   │   ├── EvaluateView.tsx
-│   │   ├── ControlBar.tsx
-│   │   ├── TimeRangePicker.tsx
-│   │   └── EvaluatorSelect.tsx
-│   ├── results/
-│   │   ├── ResultsView.tsx
-│   │   ├── FilterChipBar.tsx
-│   │   ├── MetricCards.tsx
-│   │   ├── table/
-│   │   │   ├── ResultsTable.tsx
-│   │   │   ├── TableHeader.tsx
-│   │   │   ├── SpanRow.tsx
-│   │   │   ├── ExpandedRow.tsx
-│   │   │   ├── VerdictBadge.tsx
-│   │   │   ├── AgreementIndicator.tsx
-│   │   │   ├── SignalChips.tsx
-│   │   │   └── ScoreCell.tsx
-│   │   └── sidebar/
-│   │       ├── ScoreDistribution.tsx
-│   │       ├── AttributeBreakdown.tsx
-│   │       ├── DisagreementPanel.tsx
-│   │       ├── FailurePatterns.tsx
-│   │       └── LiveEventStream.tsx
-│   ├── review/
-│   │   ├── ReviewView.tsx
-│   │   ├── DecisionButtons.tsx
-│   │   └── useReviewShortcuts.ts
-│   └── benchmark/
-│       └── BenchmarkView.tsx
-├── components/
-│   ├── Button.tsx
-│   ├── Select.tsx
-│   ├── Chip.tsx
-│   ├── Tooltip.tsx
-│   ├── Toast.tsx
-│   ├── Skeleton.tsx
-│   ├── EmptyState.tsx
-│   └── Sparkline.tsx
-├── hooks/
-│   ├── useEvaluationStream.ts
-│   ├── useFilters.ts
-│   ├── useVirtualRows.ts
-│   └── useCopyToClipboard.ts
-├── lib/
-│   ├── api.ts
-│   ├── sse.ts
-│   ├── format.ts
-│   └── verdict.ts
-├── stores/
-│   └── uiStore.ts
-├── types/
-│   └── domain.ts
-└── styles/
-    └── tokens.css
-```
+If you hit any of these, stop and flag it rather than choosing:
 
----
+1. An evaluator's `supported_levels` is unclear from the code
+2. An evaluator returns a shape that does not fit any of the four result kinds
+3. `required_columns` cannot be determined without running the evaluator
+4. An existing module has a bug that would surface through the API
+5. Two evaluators disagree on a column name for the same concept
 
-## 16. FORMATTING RULES
-
-Put these in `lib/format.ts` and use them everywhere. Inconsistent number
-formatting is the fastest way to make a data product look unfinished.
-
-```ts
-formatRate(0.2431)        → '24.3%'      // one decimal, always
-formatScore(0.8472)       → '0.847'      // three decimals, mono
-formatCount(1247)         → '1,247'      // thousands separator
-formatTokens(847)         → '847 tok'
-formatDuration(48200)     → '48.2s'
-formatDelta(0.021)        → '▲ 2.1'      // percentage points, not percent
-formatSpanId(id)          → id.slice(0, 8)
-formatTimestamp(iso)      → '12:04:31'   // time only within a run
-formatDate(iso)           → '31 Jul, 14:20'
-formatSampleSize(7)       → 'n=7 ⚠'      // warn below 10
-```
-
-**Truncation:**
-- Query in the table: 2 lines, CSS `line-clamp-2`
-- Output in the table: 3 lines, `line-clamp-3`
-- Never truncate mid-word with JS. Use CSS clamping so full text stays
-  selectable and searchable.
-
----
-
-## 17. BUILD ORDER
-
-Do not build everything at once. Follow this order and verify each step.
-
-1. **Tokens.** `tailwind.config.ts` and `tokens.css`. Render a swatch page
-   showing every colour, size and radius. Verify contrast before continuing.
-2. **Shell.** AppShell, NavRail, routing. Static, no data.
-3. **Primitives.** Button, Select, Chip, Tooltip, Toast, Skeleton, EmptyState.
-4. **Table with mock data.** 50 static rows. Get row height, hover, badges
-   and the disagreement border exactly right before adding anything else.
-5. **Virtualisation.** Swap to 10,000 mock rows. Confirm 60fps.
-6. **Expanded row.** Including highlighting and the verdict comparison.
-7. **Control bar and filters.** With URL sync.
-8. **Metric cards.**
-9. **Sidebar panels.** Distribution first, then attribute breakdown.
-10. **SSE streaming.** With batching.
-11. **Review view** and keyboard shortcuts.
-12. **Empty, loading and error states** across every view.
-13. **Accessibility pass.** Keyboard-only walkthrough, contrast audit.
-
----
-
-## 18. ACCEPTANCE CHECKLIST
-
-Before calling any part done:
-
-- [ ] No raw hex in any component file
-- [ ] No arbitrary Tailwind values in JSX
-- [ ] No component file over 200 lines
-- [ ] Every interactive element has a visible focus ring
-- [ ] Every verdict conveys meaning without colour
-- [ ] Table holds 60fps while scrolling 200,000 rows
-- [ ] A row does not re-render when a sibling changes (verify in Profiler)
-- [ ] URL restores the exact view including filters and expanded span
-- [ ] SSE burst of 500 rows does not drop frames
-- [ ] Every empty, loading and error state is implemented
-- [ ] Keyboard-only path through the entire review flow works
-- [ ] Small-sample groups are visibly marked
-- [ ] Push to Overwatch exists only at row level
-- [ ] No backend URL appears in the address bar
-- [ ] `prefers-reduced-motion` disables all transitions
-- [ ] Nothing from Section 14 exists in the build
-
-
-<img width="546" height="174" alt="Screenshot 2026-07-31 at 8 38 40 PM" src="https://github.com/user-attachments/assets/7b02f582-3e7d-4d11-b313-987620fc0537" />
-
-
-<img width="561" height="258" alt="Screenshot 2026-07-31 at 8 39 07 PM" src="https://github.com/user-attachments/assets/8211c43c-5e73-4c4a-b402-00a9dfe757e2" />
-
-
-
-<img width="588" height="247" alt="Screenshot 2026-07-31 at 8 39 40 PM" src="https://github.com/user-attachments/assets/ce90f780-1891-4e82-9a70-6a03f04f73d3" />
-
-
-<img width="605" height="344" alt="Screenshot 2026-07-31 at 8 39 58 PM" src="https://github.com/user-attachments/assets/e66e3330-e092-47db-9614-b1aacd0625f4" />
-
-
-
-<img width="643" height="247" alt="Screenshot 2026-07-31 at 8 40 20 PM" src="https://github.com/user-attachments/assets/aaeb2d2e-1769-4313-8948-58a5810581c0" />
-
-[Unified_Evaluation_Platform_v2 (1).pptx](https://github.com/user-attachments/files/30594481/Unified_Evaluation_Platform_v2.1.pptx)
-
-
-
-Rohan, I went through their code — the orchestrator already produces a run manifest with artefact paths rather than inline results, and the agreement metrics come back as a flat scalar dict. So the shape varies by evaluator.
-
-The part I cannot work out from the code is how we carry the file-based ones across an API boundary. Their paths are local to wherever the run happened, so we cannot use those directly.
-
-Do we hand back a signed URL or a fetch endpoint, or do we assume both sides read from a shared store and just pass a reference?
-
-
-
-Here's the message in simple English:
-
-Rohan, wanted to clear one thing about the response shape.
-
-For the simple evaluators it is straightforward. Hallucination gives a verdict and a score. Agreement metrics give four numbers. All of that fits in a JSON response easily.
-
-But for something like sensitivity or performance, the result is a big table — could be 500 rows with full text in each. Their code today just writes it to an Excel file and returns the file path. That works locally, but over an API it will not, because the file sits on their machine and our service cannot read that path.
-
-So for these bigger results, which way should we go?
-
-Send the full data inline in the JSON response, which could get very large.
-
-Or return a download URL that we fetch separately.
-
-Or have both sides read from a shared store, and the response just carries a reference to it.
-
-
-
-
-
-
-Simple evaluators are fine — hallucination gives a verdict, agreement metrics give a few numbers, all fits in JSON.
-
-But sensitivity or performance returns a big table, maybe 500 rows. Their code writes it to Excel and returns the file path, which will not work over an API since the file is on their machine.
-
-For those, do we send the data inline, return a download URL, or use a shared store and just pass a reference?
+These are decisions for the model team and the consuming team jointly. Getting
+them wrong quietly is worse than asking.
