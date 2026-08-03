@@ -1,3 +1,11 @@
+<img width="822" height="592" alt="Screenshot 2026-08-03 at 4 21 20 PM" src="https://github.com/user-attachments/assets/9022d826-d81c-4d29-9c7c-a08d669ccd7c" />
+
+
+
+
+
+
+
 # Fix and Enhancement Prompt — Supervisor Evaluation Dashboard
 
 This document addresses defects found in the running build plus the missing
