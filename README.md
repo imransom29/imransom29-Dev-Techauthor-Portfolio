@@ -1,4 +1,4 @@
-Step 1   Advisor asks a question in AI-Teammate-UI
+iiStep 1   Advisor asks a question in AI-Teammate-UI
 Step 2   AI-Teammate-BE runs → agent → retrieval → LLM → answer
 Step 3   Trace is written to Tachyon Overwatch
 Step 4   Our service pulls the trace from Overwatch (GraphQL)
@@ -52,4 +52,33 @@ Step 18  SME reviews rows in our UI → annotations stored
 Step 19  LLM-versus-human agreement computed automatically
 Step 20  Compare screen diffs this run against the baseline
 
+
+
+
+
+
+What we built
+We built the Supervisor Evaluation Service. It connects to Tachyon Overwatch, pulls out the conversations the AI Teammate has had with advisors, and checks whether each answer was actually supported by the documents the assistant retrieved. Results show up on our own UI.
+It's built, deployed, and running in the lower region.
+The limitation: it can only look at conversations that have already happened in Overwatch. If someone is still building or changing the assistant, there's nothing in Overwatch to look at — so we can't help them at that stage.
+What the model team built
+They built a testing framework with eleven tests, written specifically for our Supervisor Agent. Hallucination, sensitivity, retrieval, tool correctness, cyber guardrail, and others. It sends questions to the Supervisor Agent, collects the results from Overwatch, and uses Tachyon APIs to score them.
+The problem is where it runs. Every person on that team runs it from their own laptop — three programs in sequence from a terminal. Results come out as Excel files saved locally. When a subject matter expert needs to review, they get emailed a spreadsheet and email it back.
+So nothing is shared, nothing is kept, and there's no way to compare this month's results against last month's.
+Why we're combining them
+We have a deployed service with two checks. They have eleven strong checks with nowhere to run them.
+That's the change in scope. We're no longer just reading conversations from Overwatch and scoring them. We host their framework and become the place it runs.
+What it looks like when it's done
+Someone opens our UI and uploads a set of questions with the expected answers. An SME reviews and approves the list.
+They pick which tests to run, which environment to run against, and submit. They get a job ID back straight away and walk away — a run of a few hundred questions takes minutes to hours, so nobody waits.
+Behind the scenes, the questions go to the Supervisor Agent, the conversations land in Overwatch, the framework pulls them back out, the tests score them, and everything is stored in our own database.
+When it's done, they open the results in our UI. The SME reviews row by row and records their verdict there — no spreadsheet, no email. The agreement between the automated scores and the SME's own judgement is calculated automatically.
+And because everything is stored, they can compare this run against a previous one and see exactly which questions got better and which got worse.
+What changes for the model team
+Very little. Their tests stay theirs, and we're not rewriting their logic.
+Three small adjustments so their programs can read the data we hand them instead of files on a laptop.
+Both their checks and ours run, and both appear in the results side by side. Neither overrules the other, and the SME verdict sits alongside both.
+Why this matters
+Today the only reliable way to find out the assistant got worse is to notice it after it's live in UAT or production.
+With this, the team finds out while they're still building and changing — which is cheaper to fix and lower risk. That development stage is also the part Freddy's Risk Oversight Engine doesn't cover, since that platform is focused on model validation and production monitoring.
 
