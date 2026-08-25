@@ -1,40 +1,33 @@
-STAGE 3 — Unblock
-Nothing downstream works properly until these clear. Start here.
+STAGE 4 — Stop parsing the stream
+Kaz's steer. Removes a large amount of work.
 #
 Task
 Status
 Notes
-32
-Fix Model Armor TAC016 — rephrase the prompt-injection defence wording in prompts.py, keep the defence meaning intact
-⛔
-Agent team. Do NOT strip the defence — that would mean testing a different agent than production
-33
-Re-run PRE and confirm rows come back with real answers, not the generic error
+41
+Remove any stream-parsing logic — do not process the AG-UI response
 ⬜
-Depends on 32
-34
-Confirm search_infomax retrieval returns chunks once the agent is unblocked
+Parsing it means re-implementing the AI Teammate UI
+42
+Generate a prompt_id per dataset row at submission
 ⬜
-Depends on 32
-35
-Implement Ping authentication in the evaluation UI
-🔄
-The service is currently unauthenticated — anyone can use it
-36
-Handle the token chain — access token → OPA → backend → JWT
+
+43
+Carry session_id / conversation_id through the request
 ⬜
-Depends on 35
-37
-Implement token refresh — JWT ~5 min, access token ~1 hr, refresh token ~8 hrs
+
+44
+Fire the prompt, take only the completion acknowledgment
 ⬜
-Depends on 36
-38
-Adopt the AI Teammate request schema as-is rather than inventing validation
+
+45
+Look up the actual answer by prompt_id after completion
 ⬜
-Kaz was explicit on this
-39
-Confirm the non-prod retention window in Overwatch — same two weeks as prod, or shorter?
+Source: MongoDB message_records or Overwatch
+46
+Confirm access to the AI Teammate MongoDB message_records collection
 ⬜
-Platform team
-40
-Escalate data classification — no owner assigned, gates production
+Or agree Overwatch is the source instead
+47
+Verify correlation works — prompt, expected answer and actual answer land together
+⬜
