@@ -1,33 +1,49 @@
-STAGE 4 — Stop parsing the stream
-Kaz's steer. Removes a large amount of work.
+STAGE 5 — Storage wrapper
+The load-bearing piece. Not blocked on anything — start in parallel with Stage 3.
 #
 Task
 Status
 Notes
-41
-Remove any stream-parsing logic — do not process the AG-UI response
+48
+Define the Storage interface — write(key, data) → location, read(location) → data
 ⬜
-Parsing it means re-implementing the AI Teammate UI
-42
-Generate a prompt_id per dataset row at submission
+Keep it this small
+49
+Implement LocalStorage backend
 ⬜
-
-43
-Carry session_id / conversation_id through the request
-⬜
-
-44
-Fire the prompt, take only the completion acknowledgment
+Rohan explicitly approved starting local
+50
+Make the backend config-driven so nothing above the wrapper knows which is active
 ⬜
 
-45
-Look up the actual answer by prompt_id after completion
+51
+Agree a path convention — traces/{run_id}/{trace_id}.json
 ⬜
-Source: MongoDB message_records or Overwatch
-46
-Confirm access to the AI Teammate MongoDB message_records collection
+
+52
+Ask Sandhya / platform: GCS auth method — Workload Identity or service account key in Vault?
 ⬜
-Or agree Overwatch is the source instead
-47
-Verify correlation works — prompt, expected answer and actual answer land together
+Two very different implementations
+53
+Ask: bucket name, GCP project, per-environment separation
+⬜
+
+54
+Ask: network path from OCP Garland 6 to GCS — proxy or direct?
+⬜
+Bank egress is usually restricted
+55
+Ask: lifecycle rules on the bucket — any auto-delete?
+⬜
+Auto-delete would defeat the whole retention purpose
+56
+Ask: encryption — Google-managed keys or CMEK?
+⬜
+
+57
+Implement GCSStorage backend
+⬜
+Roughly 20 lines once auth is settled
+58
+Swap backend by config and verify nothing above changed
 ⬜
