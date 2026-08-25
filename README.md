@@ -1,44 +1,40 @@
-STAGE 2 — Model testing framework integration
-Wiring their framework in. Mostly done.
+STAGE 3 — Unblock
+Nothing downstream works properly until these clear. Start here.
 #
 Task
 Status
-19
-Agree HTTP adapter approach — no code merge, separate repos
-✅
-20
-Build FrameworkAdapter — HTTP client to the framework
-✅
-21
-Lock the port topology — UI 5500, Backend 8000, Framework 8001, Agent 8082
-✅
-22
-Wire list_test_types() — surface all 11 test types in the UI dropdown
-✅
-23
-Build dataset upload — drag and drop in the UI
-✅
-24
-Wire run kickoff — generate model_test_run_id, receive framework_run_id
-✅
-25
-Wire the PRE phase — framework loops dataset rows, calls the agent
-✅
-26
-JobStore writing parquet and json artifacts
-✅
-27
-Wire trace pull after PRE
-✅
-28
-Poll run status from the UI
-✅
-29
-Fix retrieval — wrong search endpoint mapping
-✅
-30
-Fix startup — Python interpreter mismatch, uvicorn missing
-✅
-31
-Roll back the prompt simplification, honour the no-system-prompt-change constraint
-✅
+Notes
+32
+Fix Model Armor TAC016 — rephrase the prompt-injection defence wording in prompts.py, keep the defence meaning intact
+⛔
+Agent team. Do NOT strip the defence — that would mean testing a different agent than production
+33
+Re-run PRE and confirm rows come back with real answers, not the generic error
+⬜
+Depends on 32
+34
+Confirm search_infomax retrieval returns chunks once the agent is unblocked
+⬜
+Depends on 32
+35
+Implement Ping authentication in the evaluation UI
+🔄
+The service is currently unauthenticated — anyone can use it
+36
+Handle the token chain — access token → OPA → backend → JWT
+⬜
+Depends on 35
+37
+Implement token refresh — JWT ~5 min, access token ~1 hr, refresh token ~8 hrs
+⬜
+Depends on 36
+38
+Adopt the AI Teammate request schema as-is rather than inventing validation
+⬜
+Kaz was explicit on this
+39
+Confirm the non-prod retention window in Overwatch — same two weeks as prod, or shorter?
+⬜
+Platform team
+40
+Escalate data classification — no owner assigned, gates production
