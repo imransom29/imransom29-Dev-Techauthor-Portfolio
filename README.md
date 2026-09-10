@@ -1,75 +1,40 @@
+Nahi — ye framing thodi galat hai. "Mongo phat jaayega" wo reason nahi hai. Chalo asli reason saaf karta hoon, kyunki Gaurav ye poochega aur galat reason diya toh phas jaoge.
+Bucket ka asli reason — size, shape nahi
+MongoDB variable shape se nahi phatega. MongoDB toh bana hi hai variable shape ke liye — naya field aaye toh wo happily store kar leta hai. Toh "Salesforce ka alag document aayega toh Mongo toot jaayega" — ye technically galat hai.
+Asli reason ye hai:
+1. Size / volume
+Code
+Bucket bade files ke liye bana hai. Database bade blobs ke liye nahi.
+2. Handoff — sabse bada reason
+Yaad karo Rohan ka point. Model team, MRM — inko us data pe apni evaluation chalani hai. Unhe raw data chahiye ek shared jagah pe.
+Code
+Bucket ek shared handoff point hai. Database nahi.
+3. Async — Rohan ka doosra point
+Partner ka job 2-3 ghante chalta hai. Result kahin girna chahiye aur baad mein uthana. Bucket exactly iske liye hai.
+Toh shape wali baat kahan aati hai
+Shape ka argument hai, but wo "phat jaayega" nahi hai. Wo ye hai:
+Code
+Farak samajh:
+❌ "Mongo variable shape se toot jaayega" — galat, Mongo ye handle karta hai
+✅ "Raw ko schema mat do, bucket mein as-is rakho, taaki naye fields pe migration na ho" — sahi
+Toh Gaurav ko kya bolo — sahi framing
+"The raw traces go into a bucket for three reasons.
+One — size. Each trace carries the full retrieved context, which is large. At scale that's GBs to TBs — that belongs in object storage, not a database.
+Two — it's a handoff point. The model team and MRM need to run their own evaluations against that data. A bucket they can read from directly. Giving them database access is harder.
+Three — async. Their jobs run 2-3 hours, so the result has to land somewhere and be picked up. A bucket fits that.
+The database stays small — just the index and the KPIs, structured fields that don't change per use case."
+Toh tumhare
+sawaal ka seedha jawab
+Nahi, "Mongo phat jaayega" reason nahi hai.
+Bucket isliye hai kyunki:
+Raw data bada hai (size)
+Doosri teams ko shared access chahiye (handoff)
+Jobs lambe hain (async)
+Aur variable shape wali baat — wo bucket mein raw JSON rakhne ka reason hai (no schema, no migration), na ki "Mongo crash ho jaayega."
+Agar tum Gaurav ko "Mongo phat jaayega" bologe, wo turant bolega "nahi, Mongo JSON handle karta hai" — aur tumhara reason gir jaayega. Isliye size + handoff + async bolo. Wo teeno solid hain.
 
 
 
-Supervisor Evaluation Service — The Complete Story
-
-From where it started to where it stands now. BZSD-333 · Rahul Vinayak · AHP Pro, WIMT · Wells Fargo
-
-The story in one paragraph
-
-Wells Fargo's advisors use an AI assistant. Nobody had a fast, shared, trustworthy way to check whether that assistant was giving correct answers before it shipped — the checking was manual, ran on people's laptops, and the evidence disappeared after two weeks. This service fixes that: it pulls the assistant's traces, stores them somewhere durable, lets the risk teams run their own evaluations against them, and pulls everything back into one dashboard with KPIs. It started as a one-person tool for one team. It has grown into the integration point that the model team, MRM, and the enterprise library group are all converging on.
-
-Chapter 1 — Where it began
-
-The AI Teammate assistant sits inside WIMT. An advisor asks a question, the assistant looks up policy and account data through an agentic pipeline, and answers. Every conversation is recorded into Tachyon Overwatch — which is Arize Phoenix, deployed internally.
-
-The problem was never recording. It was three gaps:
-
-Retention. Overwatch clears traces after two weeks. A complaint or an audit a month later finds nothing.
-No verdict. Recording isn't checking. Overwatch tells you what was said, not whether it was right.
-No platform. The model team had a testing framework, but everyone ran it on their own laptop, passing files by hand.
-
-So Rahul built a FastAPI service that pulls traces from Overwatch, runs an LLM-as-judge for hallucination, and shows PASSED / REVIEW / FAILED verdicts. It went to OCP (Garland 6, lower region), with CI/CD through JFrog and Harness, secrets in Vault. The local judge benchmark hit 74%.
-
-Two demos landed well — the model team (Aug 3) and ~30 product owners (Aug 14). Tom called it excellent and asked for the URL for the product team.
-
-Chapter 2 — The direction changes
-
-Then the design shifted, driven by three people.
-
-Rohan (architecture). He removed Rahul's own Arize verdict from the product surface. Reason: the model team and MRM are the risk functions — their verdict gates release. A second competing verdict just gives development teams a signal they can't act on. Arize stays for storage, dashboards and annotations — the objection is only to using it as the judge, because no downstream team consumes that signal.
-
-He also reframed the whole shape: don't define everyone's structure, define the join. Rahul extracts and stores; partner teams run their own evaluations and hand back a pointer; Rahul ingests and builds the comprehensive view. Store the complete raw JSON, not a rigid schema, because the data keeps changing. The minimum contract: run_id, row_id, pointer — everything inside stays theirs.
-
-Kaz (engineering). He unblocked the JWT chain (Ping auth → OPA → backend → JWT), and gave the steer that saved weeks: don't parse the supervisor's streaming response — that's re-implementing the AI Teammate UI. Instead, fire the prompt, take the ack, and look the answer up by prompt_id from MongoDB's message_records or Overwatch.
-
-Scope settled. Second Rohan meeting: WIM only, not enterprise-wide. Other teams may replicate the pattern themselves. Storage is a wrapper, not a bucket — local filesystem now, GCS later behind the same interface. The exchange is asynchronous because partner jobs run 2-3 hours, so results must land somewhere and be picked up. Sequence: model team first, then bucket, then MRM. Be ready by Tuesday.
-
-Chapter 3 — Understanding what's really being integrated
-
-The weekend sessions with Kaz mapped the model testing framework properly.
-
-It's not 11 factors — it's 10 (trace pool is a data source, not an evaluator). And all 10 map onto just three evaluators: LLM-as-a-judge, cosine similarity matrix, and human-vs-agreement. That last one drives the Review section — where a human's score and the evaluator's score diverge, the row surfaces for inspection.
-
-Rahul's integration stays a thin wrapper — one API, the evaluator name is a path parameter. And because he runs the factors in parallel instead of sequentially, change management drops from 3-4 hours to about a third.
-
-One big question stayed open: keep the framework as a separate service, or turn it into a versioned Python package imported into the service. Kaz leans package (centralised, versioned, no second process). Rahul's counter that settled the discussion: a package loses software-as-a-service — other teams would have to set it up their own side, and a plugin model keeps the door open for teams not yet met. To be decided Tuesday.
-
-Chapter 4 — The blockers
-
-Real integration hit real walls.
-
-TAC016 / Model Armor. The agent's own system prompt contains injection-defence wording that Model Armor reads as a jailbreak. Every row came back an error. The fix is to rephrase the wording, not strip the defence — stripping it would test a different agent than production.
-Identity not threaded. In the benchmarking run, ppid/elid/thread_id weren't reaching the supervisor's tool state, so search_infomax failed on every prompt — 0% success. The identity exists in the payload; it just isn't being threaded in.
-Zero-trace crash. With no successful prompts, the framework crashed reading a column on an empty DataFrame — a defensive-coding gap.
-Embedding. Explainability scores against the wrong vector space — the framework points at text-embedding-004, but the platform uses TE5. Ingestion is owned by the ECM team; the fastest route to the endpoint is the hackathon starter-kit script.
-Chapter 5 — What's built vs what's next
-
-Built: the base service, framework integration over HTTP, parallel execution, the golden dataset flow (upload, fire, evaluate, store, re-fire), and human-vs-agreement with write-back to MongoDB.
-
-Next, before Tuesday: the storage wrapper (add/get/remove/list/exists) over a local backend, extraction that writes raw JSON at fetch time, a small index of keys and pointers, the entry/exit contract points, the five-field ingestion endpoint, removing the Arize verdict from the UI, and adding stored extractions as an input source so a run can be re-evaluated without hitting the agent again.
-
-In parallel: chase TAC016, Ping auth, and stop parsing the stream.
-
-Chapter 6 — It stops being one team's tool
-
-Two threads turned this from a WIM tool into a firm-level integration point.
-
-The enterprise / library group. Freddy's Risk Oversight Engine group — Jay, Andy, Charles, Umair, Taron — first looked like a competitor. Freddy had said outright that everyone building their own thing wastes the firm's money. It's now collaboration: both sides agreed to exchange the eval library as a plug-in. Rahul already has a plugin-style evaluator, so that's the bridge. Deepak confirmed it — move from swapping Python files to a shared library.
-
-Umair drew the distinction that matters: offline evals (golden dataset, change management, release comparison — what the service does) versus continuous production monitoring (real-time, live traffic — what it doesn't). Production monitoring needs sampling — 1-2%, not 100%, because full coverage gets expensive fast, and representativeness is what counts.
-
-The GCP bucket got explained too: Tachyon's Data Fabric pushes traces into a Google project every 15 minutes; the Risk Oversight Engine pulls from there. Getting the Google project takes about a month. That's the same bucket Rohan meant — which is exactly why the wrapper-over-local approach keeps Rahul unblocked while it's provisioned.
 
 Rohan as a user. In a 1:1, Rohan revealed he's not just the architect — he's a user. Today he runs evaluation by hand: batch queries into a UI, fire at a local supervisor on his own Phoenix project, extract traces, run everything locally, download, check reports by hand. He wants Rahul's tool to automate that — a background cron job that runs every 15-30 minutes against a tracing project and produces report files. His framing: his use case is a scheduled baseline; Rahul's is the centralised source of truth. And the real value — instead of running everything on his own machine, he could run against any environment just by changing settings in MongoDB. His line: it has to become production and integrate into people's daily work, not just be a demo.
 
