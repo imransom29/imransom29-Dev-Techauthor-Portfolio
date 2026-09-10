@@ -35,6 +35,29 @@ Agar tum Gaurav ko "Mongo phat jaayega" bologe, wo turant bolega "nahi, Mongo JS
 
 
 
+Haan, part sahi — but ye aadha reason hai. Sirf "bulk data" bologe toh Gaurav poochega "database mein bhi bulk daal sakte ho, bucket kyun?" Toh poora reason yaad rakho.
+Bucket ke teen reason — teeno chahiye
+1. Bulk / size ✅ (jo tumne kaha)
+Bada data, GBs-TBs. Object storage iske liye bana hai.
+2. Handoff — shared access
+Model team, MRM ko us data pe apni evaluation chalani hai. Bucket se wo seedha padh lete hain. Database access dena mushkil.
+3. Async — lambe jobs
+Partner ka job 2-3 ghante chalta hai. Result kahin girna chahiye, baad mein uthana. Bucket iske liye perfect.
+Kyun sirf "bulk" kaafi nahi
+Socho Gaurav ka counter:
+Tum: "Bucket isliye taaki bulk data push kar paayein"
+Gaurav: "Bulk toh database mein bhi jaa sakta hai. Bucket kyun specifically?"
+Tum: "..."
+Isliye teeno reason chahiye. Bulk ek hai, but akela weak hai.
+Sabse strong reason actually handoff hai — kyunki Rohan ne wahi bola tha ki bucket ek shared jagah hai jahan se saari teams padhengi. Wo bucket ka asli maksad hai, sirf storage nahi.
+Ek line mein — jo Gaurav ko bolo
+"The bucket is for three things: the raw traces are large, multiple teams need to read the same copy directly, and their evaluation jobs run for hours so results have to land somewhere and be collected. Object storage fits all three — a database fits none of them well."
+Yaad rakhne ke liye — teen shabd
+Code
+Ye teen bolo, teeno saath. Tab bucket ka case poora hai aur koi tod nahi sakta.
+
+
+
 
 Rohan as a user. In a 1:1, Rohan revealed he's not just the architect — he's a user. Today he runs evaluation by hand: batch queries into a UI, fire at a local supervisor on his own Phoenix project, extract traces, run everything locally, download, check reports by hand. He wants Rahul's tool to automate that — a background cron job that runs every 15-30 minutes against a tracing project and produces report files. His framing: his use case is a scheduled baseline; Rahul's is the centralised source of truth. And the real value — instead of running everything on his own machine, he could run against any environment just by changing settings in MongoDB. His line: it has to become production and integrate into people's daily work, not just be a demo.
 
