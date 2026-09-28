@@ -20,10 +20,7 @@
     --card-bg: #FFFFFF;
   }
 
-  html, body {
-    height: 100%;
-    margin: 0;
-  }
+  html, body { height: 100%; margin: 0; }
 
   body {
     background: var(--bg-red);
@@ -39,6 +36,13 @@
     height: 100%;
     z-index: 0;
     pointer-events: none;
+  }
+
+  /* Naya box girte waqt ka animation */
+  #bg .drop {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform .7s cubic-bezier(.2, .8, .2, 1), opacity .6s;
   }
 
   /* Card ko screen ke beech mein rakhne ke liye */
@@ -157,15 +161,8 @@
 
   /* Phone / chhoti screen: layout wahi side-by-side, bas sab thoda chhota */
   @media (max-width: 640px) {
-    .login-card {
-      max-width: 560px;
-      min-height: 180px;
-      border-radius: 12px;
-    }
-    .brand-panel {
-      flex: 0 0 44%;
-      padding: 16px 20px 16px 10px;
-    }
+    .login-card { max-width: 560px; min-height: 180px; border-radius: 12px; }
+    .brand-panel { flex: 0 0 44%; padding: 16px 20px 16px 10px; }
     .brand-mark { font-size: 11px; letter-spacing: 1px; }
     .brand-title { font-size: 16px; margin-top: 8px; }
     .brand-rule { width: 28px; height: 3px; margin-top: 10px; }
@@ -179,7 +176,7 @@
 </head>
 <body>
 
-  <!-- Background ka animated "wealth evaluation wall" yahan JS se banta hai -->
+  <!-- Background ki overlapping "wealth evaluation wall" yahan JS se banti hai -->
   <svg id="bg" aria-hidden="true"></svg>
 
   <main class="stage">
@@ -192,7 +189,6 @@
 
       <div class="signin">
         <div class="shield" aria-hidden="true">
-          <!-- Shield-check icon -->
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" />
@@ -214,23 +210,20 @@
 <script>
 (function () {
   /* ==========================================================
-     1) CONTINUE BUTTON
-     Yahan apna existing login/session logic lagao.
+     1) CONTINUE BUTTON — yahan apna existing session logic lagao
      ========================================================== */
   document.getElementById("continueBtn").addEventListener("click", function () {
-    // Example: apne current non-SSO session wale function ko yahan call karo
     // startLocalSession();
     console.log("Continue clicked");
   });
 
   /* ==========================================================
-     2) BACKGROUND SETUP
+     2) BASIC SETUP
      ========================================================== */
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.getElementById("bg");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Chhota helper: SVG element banane ke liye
   const el = (tag, attrs) => {
     const e = document.createElementNS(NS, tag);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -239,21 +232,23 @@
   const rnd = Math.random;
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
 
-  // Background ke colors (jaan-bujh ke halke rakhe hain)
-  const LINE = "#A32D2D";
-  const TEXT = "#F09595";
-  const GOLD = "#BA7517";
-  const PASS = "#97C459";
-  const FLAG = "#EF9F27";
+  // Background ke colors
+  const LINE = "#A32D2D", TEXT = "#F09595", GOLD = "#BA7517";
+  const PASS = "#97C459", FLAG = "#EF9F27", RING = "#FAC775";
+  const CARD_FILL = "#6A1B1B", SHADOW = "#2E0A0A", PANEL = "#501313";
 
-  // Text likhne ka helper — strong = heading jaisa, italic = quote ke liye
-  const tx = (g, x, y, s, strong, italic) => {
+  const CARD_W = 140;       // har box ki width
+  const OVERLAP = 7;        // boxes kitna ek doosre pe chadhe hue hain
+  const MAX_ACTIVE = 5;     // ek waqt pe kitne boxes review ho sakte hain
+
+  // Text helper — level 1 = heading, 0 = normal, 2 = halka detail line
+  const tx = (g, x, y, s, level, italic) => {
     const t = el("text", {
       x, y,
       "font-size": 11,
       "font-family": "Segoe UI, system-ui, sans-serif",
-      fill: strong ? "#F7C1C1" : TEXT,
-      "fill-opacity": strong ? 0.6 : 0.5,
+      fill: level === 1 ? "#F7C1C1" : TEXT,
+      "fill-opacity": level === 1 ? 0.75 : level === 2 ? 0.45 : 0.6,
       "font-style": italic ? "italic" : "normal"
     });
     t.textContent = s;
@@ -261,284 +256,368 @@
   };
 
   /* ==========================================================
-     3) CONTENT POOL — har box inme se random kahani uthata hai.
+     3) PEOPLE — drawn illustration, har baar random look
+     ========================================================== */
+  const SKIN = ["#E8C4A6", "#C99A76", "#9C6B4A", "#6E4630"];
+  const HAIR = ["#2C1A12", "#4A2C1C", "#8A6A4A", "#D3D1C7"];
+  const SHIRT = ["#BA7517", "#A32D2D", "#5F5E5A", "#854F0B", "#888780", "#993556"];
+
+  function person(g, cx, cy, s, shirt) {
+    const p = el("g", { opacity: 0.8 });
+    const hair = pick(HAIR);
+    const style = Math.floor(rnd() * 4); // 0 short, 1 long, 2 bun, 3 short
+
+    // Kandhe / shirt
+    p.appendChild(el("path", {
+      d: `M${cx - 10 * s} ${cy + 20 * s} Q${cx - 10 * s} ${cy + 8 * s} ${cx} ${cy + 8 * s} Q${cx + 10 * s} ${cy + 8 * s} ${cx + 10 * s} ${cy + 20 * s} Z`,
+      fill: shirt || pick(SHIRT)
+    }));
+    // Lambe baal (chehre ke peeche)
+    if (style === 1) {
+      p.appendChild(el("rect", { x: cx - 6.8 * s, y: cy - s, width: 2.6 * s, height: 8 * s, rx: s, fill: hair }));
+      p.appendChild(el("rect", { x: cx + 4.2 * s, y: cy - s, width: 2.6 * s, height: 8 * s, rx: s, fill: hair }));
+    }
+    // Chehra
+    p.appendChild(el("circle", { cx, cy, r: 6 * s, fill: pick(SKIN) }));
+    // Baal ka upar wala hissa
+    p.appendChild(el("path", {
+      d: `M${cx - 6.3 * s} ${cy - 0.5 * s} A${6.3 * s} ${6.3 * s} 0 0 1 ${cx + 6.3 * s} ${cy - 0.5 * s} Z`,
+      fill: hair
+    }));
+    // Joda (bun)
+    if (style === 2) p.appendChild(el("circle", { cx, cy: cy - 7 * s, r: 2.6 * s, fill: hair }));
+    g.appendChild(p);
+  }
+
+  /* ==========================================================
+     4) CONTENT POOL — har box 3 lines: heading, main, detail.
      Naya content daalna ho to bas in arrays mein add karo.
+     (Lines chhoti rakhna, warna box ke bahar nikal jayengi)
      ========================================================== */
   const DATA = {
     calc: [
-      ["Rule of 72", "72 ÷ 8 ≈ 9 yrs"], ["FV=PV(1+r)ⁿ", "$10k → $21.6k"],
-      ["Sharpe ratio", "(R − Rf) / σ"], ["Max drawdown", "−8.2% in Q2"],
-      ["Expense ratio", "0.18% per yr"], ["Real return", "7% − 3% infl."],
-      ["Emergency fund", "6 × expenses"], ["Withdrawal", "4% rule"]
+      ["Rule of 72", "72 ÷ 8% ≈ 9 years", "to double money"],
+      ["FV = PV(1+r)ⁿ", "$10k at 8%, 10 yrs", "grows to $21.6k"],
+      ["Sharpe ratio", "(R − Rf) / σ", "return per unit risk"],
+      ["4% rule", "Withdraw 4% a year", "for a 30-year plan"],
+      ["Emergency fund", "6 × monthly costs", "kept in cash"],
+      ["Real return", "7% − 3% inflation", "= 4% real growth"],
+      ["Expense ratio", "0.18% per year", "small fee, big impact"],
+      ["Savings rate", "Save 20% of pay", "pay yourself first"],
+      ["Debt-to-income", "Keep it under 36%", "for healthy credit"],
+      ["Max drawdown", "−8.2% in Q2", "recovered by Q3"]
     ],
     def: [
-      ["Alpha", "Beat the benchmark"], ["Beta", "Moves vs market"],
-      ["Liquidity", "Speed to cash"], ["Fiduciary", "Client comes first"],
-      ["Rebalancing", "Back to target"], ["Annuity", "Income for life"],
-      ["Volatility", "Size of swings"], ["Tax-loss harvest", "Offset the gains"],
-      ["Index fund", "Own the market"]
+      ["Alpha", "Return above", "the benchmark"],
+      ["Beta", "How much it moves", "vs the market"],
+      ["Fiduciary", "Must put the", "client first"],
+      ["Rebalancing", "Resetting the mix", "back to target"],
+      ["Annuity", "Pays a steady", "income for life"],
+      ["Liquidity", "How fast an asset", "turns into cash"],
+      ["Volatility", "How big the", "price swings are"],
+      ["Diversification", "Don't put all eggs", "in one basket"],
+      ["Asset allocation", "Split across stocks,", "bonds and cash"],
+      ["Tax-loss harvest", "Sell losers to", "offset the gains"],
+      ["Index fund", "Owns the whole", "market, low cost"]
     ],
     thought: [
-      ["Time in market", "beats timing it"], ["Diversify,", "don't predict"],
-      ["Risk is the", "price of return"], ["Compound", "quietly, steadily"],
-      ["Plan first,", "then invest"], ["Fees matter", "over decades"]
+      ["Time in market", "beats timing", "the market"],
+      ["Plan first,", "then invest,", "then review"],
+      ["Risk is the", "price you pay", "for return"],
+      ["Fees look small", "but compound", "over decades"],
+      ["Diversify,", "don't try to", "predict"],
+      ["Stay invested", "through the", "downturns"],
+      ["Every client", "has a different", "finish line"]
     ],
     value: [
-      ["Trust", "earned every day"], ["Clarity", "no hidden fees"],
-      ["Client first", "always"], ["Discipline", "through the cycle"],
-      ["Transparency", "show the math"]
+      ["Trust", "Earned in every", "conversation"],
+      ["Client first", "Their goals", "before ours"],
+      ["Clarity", "No hidden fees,", "no jargon"],
+      ["Discipline", "Stick to the plan", "in any market"],
+      ["Transparency", "Always show", "the math"],
+      ["Accountability", "Every answer", "can be checked"]
     ],
-    person: [
-      ["Client goal", "Retire at 60"], ["College fund", "Target 2032"],
-      ["Advisor note", "Rebalance in Q4"], ["First home", "Save $80k"],
-      ["Legacy plan", "Trust for kids"], ["New parent", "Start a 529"],
-      ["Small business", "Cash-flow plan"], ["Sabbatical", "Fund 12 months"]
+    client: [
+      ["Client goal", "Retire at 60", "Needs $1.2M"],
+      ["Sabbatical", "Fund 12 months", "No selling"],
+      ["Small business", "Cash-flow plan", "Next 2 years"],
+      ["Career switch", "6-month buffer", "Before moving"],
+      ["Retired couple", "Income for life", "Bond ladder"],
+      ["Young saver", "First $10k", "At age 25"],
+      ["Doctor, 42", "Paying loans", "And investing"]
+    ],
+    family: [
+      ["Family plan", "College fund by 2032", "$400 every month"],
+      ["New parent", "Starting a 529 plan", "$250 every month"],
+      ["Legacy plan", "Trust for the kids", "Reviewed yearly"],
+      ["First home", "Saving $80k down", "Target: 2028"],
+      ["Blended family", "Updated beneficiaries", "After the wedding"]
+    ],
+    advisor: [
+      ["Advisor meeting", "Rebalance in Q4", "Equity back to 60%"],
+      ["Review call", "Risk check done", "Profile: moderate"],
+      ["Onboarding", "Knowing the goals", "Before any product"],
+      ["Annual review", "Right on track", "For retirement"],
+      ["Tax season", "Harvest losses", "Before Dec 31"]
+    ],
+    spark: [
+      ["Portfolio value", "$2.4M · +8.2% YTD"],
+      ["Retirement pot", "$640k · on track"],
+      ["Growth fund", "+12.1% in 1 year"]
+    ],
+    bars: [
+      ["Monthly returns", "Best month +3.4%"],
+      ["Savings rate", "Up from 12% to 20%"],
+      ["Dividends", "$3,210 this year"]
     ]
   };
 
-  // Har type ke box ki height
-  const HEIGHT = { calc: 52, def: 52, value: 52, thought: 56, person: 56, gauge: 56, donut: 58, spark: 62, bars: 62, area: 62 };
-
-  // Same height wale types aapas mein swap ho sakte hain (layout nahi hilta)
-  const SAME_HEIGHT = { 52: ["calc", "def", "value"], 56: ["thought", "person", "gauge"], 58: ["donut"], 62: ["spark", "bars", "area"] };
+  // Har type ki height. Same height wale types aapas mein swap hote hain, isliye grid nahi hilti.
+  const HEIGHT = { calc: 74, def: 74, value: 74, thought: 74, client: 80, spark: 80, bars: 80, donut: 80, family: 104, advisor: 104 };
+  const SAME_HEIGHT = {
+    74: ["calc", "def", "value", "thought"],
+    80: ["client", "client", "spark", "bars", "donut"],
+    104: ["family", "advisor"]
+  };
 
   /* ==========================================================
-     4) DRAW FUNCTIONS — har type ka box kaise dikhega
+     5) DRAW FUNCTIONS — box ke andar kya dikhega (local coords)
      ========================================================== */
+  const three = (g, c, x) => { tx(g, x, 23, c[0], 1); tx(g, x, 41, c[1], 0); tx(g, x, 58, c[2], 2); };
+
   const DRAW = {
-    calc: (g, x, y) => { const c = pick(DATA.calc); tx(g, x + 8, y + 21, c[0], 1); tx(g, x + 8, y + 39, c[1]); },
+    calc: (g) => three(g, pick(DATA.calc), 10),
+    def: (g) => three(g, pick(DATA.def), 10),
 
-    def: (g, x, y) => { const c = pick(DATA.def); tx(g, x + 8, y + 21, c[0], 1); tx(g, x + 8, y + 39, c[1]); },
-
-    thought: (g, x, y) => {
+    thought: (g) => {
       const c = pick(DATA.thought);
-      const q = el("text", { x: x + 8, y: y + 24, "font-size": 22, fill: GOLD, "fill-opacity": 0.6, "font-family": "Georgia, serif" });
+      const q = el("text", { x: 10, y: 26, "font-size": 22, fill: GOLD, "fill-opacity": 0.7, "font-family": "Georgia, serif" });
       q.textContent = "“";
       g.appendChild(q);
-      tx(g, x + 22, y + 22, c[0], 0, 1);
-      tx(g, x + 22, y + 40, c[1], 0, 1);
+      tx(g, 24, 24, c[0], 0, true);
+      tx(g, 24, 41, c[1], 0, true);
+      tx(g, 24, 58, c[2], 0, true);
     },
 
-    value: (g, x, y) => {
-      const c = pick(DATA.value), cx = x + 14, cy = y + 17;
-      g.appendChild(el("path", { d: `M${cx} ${cy - 6} L${cx + 6} ${cy} L${cx} ${cy + 6} L${cx - 6} ${cy} Z`, fill: "none", stroke: GOLD, "stroke-opacity": 0.7 }));
-      tx(g, x + 26, y + 21, c[0], 1);
-      tx(g, x + 8, y + 40, c[1]);
+    value: (g) => {
+      const c = pick(DATA.value);
+      g.appendChild(el("path", { d: "M16 13 L22 19 L16 25 L10 19 Z", fill: "none", stroke: GOLD, "stroke-opacity": 0.8 }));
+      tx(g, 28, 23, c[0], 1);
+      tx(g, 10, 42, c[1], 0);
+      tx(g, 10, 58, c[2], 2);
     },
 
-    person: (g, x, y) => {
-      const c = pick(DATA.person), cx = x + 19, cy = y + 22;
-      g.appendChild(el("circle", { cx, cy: cy + 2, r: 13, fill: "#791F1F", "fill-opacity": 0.6, stroke: LINE, "stroke-opacity": 0.6 }));
-      g.appendChild(el("circle", { cx, cy: cy - 2, r: 4.5, fill: TEXT, "fill-opacity": 0.5 }));
-      g.appendChild(el("path", { d: `M${cx - 8} ${cy + 11} Q${cx} ${cy + 1} ${cx + 8} ${cy + 11}`, fill: TEXT, "fill-opacity": 0.5 }));
-      tx(g, x + 38, y + 21, c[0], 1);
-      tx(g, x + 38, y + 39, c[1]);
-    },
-
-    spark: (g, x, y, w, h) => {
-      tx(g, x + 8, y + 18, pick(["Portfolio value", "Retirement pot", "Growth fund"]), 1);
+    spark: (g, w, h) => {
+      const c = pick(DATA.spark);
+      tx(g, 10, 20, c[0], 1);
+      tx(g, 10, 36, c[1], 2);
       const pts = []; let v = h - 8;
-      for (let i = 0; i < 10; i++) {
-        v = Math.max(26, Math.min(h - 6, v - (rnd() * 8 - 2)));
-        pts.push(`${x + 8 + i * 10.5},${y + v}`);
+      for (let i = 0; i < 11; i++) {
+        v = Math.max(46, Math.min(h - 8, v - (rnd() * 6 - 1.5)));
+        pts.push(`${10 + i * 11.5},${v}`);
       }
-      g.appendChild(el("polyline", { points: pts.join(" "), fill: "none", stroke: LINE, "stroke-opacity": 0.8, "stroke-width": 1.2 }));
+      g.appendChild(el("polyline", { points: pts.join(" "), fill: "none", stroke: LINE, "stroke-width": 1.3, "stroke-opacity": 0.9 }));
     },
 
-    bars: (g, x, y, w, h) => {
-      tx(g, x + 8, y + 18, pick(["Monthly returns", "Savings rate", "Dividends"]), 1);
-      for (let i = 0; i < 8; i++) {
-        const bh = 5 + rnd() * 20 + i * 1.5;
-        g.appendChild(el("rect", { x: x + 8 + i * 12, y: y + h - 6 - bh, width: 8, height: bh, fill: i % 3 === 2 ? GOLD : LINE, "fill-opacity": 0.55 }));
+    bars: (g, w, h) => {
+      const c = pick(DATA.bars);
+      tx(g, 10, 20, c[0], 1);
+      tx(g, 10, 36, c[1], 2);
+      for (let i = 0; i < 9; i++) {
+        const bh = 4 + rnd() * 16 + i * 1.2;
+        g.appendChild(el("rect", { x: 10 + i * 13, y: h - 8 - bh, width: 8, height: bh, fill: i % 3 === 2 ? GOLD : LINE, "fill-opacity": 0.7 }));
       }
     },
 
-    donut: (g, x, y, w, h) => {
-      const cx = x + 22, cy = y + h / 2, C = 75.4; // C = circle ki circumference (r = 12)
+    donut: (g, w, h) => {
+      const cx = 26, cy = h / 2, C = 81.7; // circumference, r = 13
       const equity = Math.round(40 + rnd() * 35);
       const bonds = Math.round((100 - equity) * 0.8);
+      const cash = 100 - equity - bonds;
       const a = equity / 100 * C, b = bonds / 100 * C;
       [[a, 0, LINE], [b, -a, GOLD], [C - a - b, -a - b, TEXT]].forEach(s => {
         g.appendChild(el("circle", {
-          cx, cy, r: 12, fill: "none", stroke: s[2], "stroke-opacity": 0.6, "stroke-width": 5,
+          cx, cy, r: 13, fill: "none", stroke: s[2], "stroke-opacity": 0.75, "stroke-width": 5,
           "stroke-dasharray": `${s[0]} ${C - s[0]}`, "stroke-dashoffset": s[1],
           transform: `rotate(-90 ${cx} ${cy})`
         }));
       });
-      tx(g, x + 44, cy - 4, `Equity ${equity}%`, 1);
-      tx(g, x + 44, cy + 12, `Bonds ${bonds}%`);
+      tx(g, 52, cy - 10, `Equity ${equity}%`, 1);
+      tx(g, 52, cy + 6, `Bonds ${bonds}%`, 0);
+      tx(g, 52, cy + 21, `Cash ${cash}%`, 2);
     },
 
-    gauge: (g, x, y, w, h) => {
-      const cx = x + 26, cy = y + h - 12, r = rnd(), ang = Math.PI * (0.15 + r * 0.7);
-      g.appendChild(el("path", { d: `M${cx - 17} ${cy} A17 17 0 0 1 ${cx + 17} ${cy}`, fill: "none", stroke: LINE, "stroke-opacity": 0.6, "stroke-width": 3 }));
-      g.appendChild(el("line", { x1: cx, y1: cy, x2: cx - Math.cos(ang) * 14, y2: cy - Math.sin(ang) * 14, stroke: GOLD, "stroke-opacity": 0.8, "stroke-width": 1.3 }));
-      tx(g, x + 50, cy - 10, "Risk", 1);
-      tx(g, x + 50, cy + 4, r < 0.33 ? "Conservative" : r < 0.66 ? "Moderate" : "Growth");
+    client: (g, w, h) => {
+      const c = pick(DATA.client);
+      g.appendChild(el("rect", { x: 6, y: 6, width: 42, height: h - 12, rx: 6, fill: PANEL }));
+      person(g, 27, 30, 1.45);
+      tx(g, 56, 25, c[0], 1);
+      tx(g, 56, 43, c[1], 0);
+      tx(g, 56, 60, c[2], 2);
     },
 
-    area: (g, x, y, w, h) => {
-      tx(g, x + 8, y + 18, pick(["Net worth", "Assets under care", "Home equity"]), 1);
-      let d = `M${x + 8} ${y + h - 6}`, v = h - 8;
-      for (let i = 0; i < 10; i++) { v = Math.max(26, v - rnd() * 5); d += ` L${x + 8 + i * 11.5} ${y + v}`; }
-      d += ` L${x + 111.5} ${y + h - 6} Z`;
-      g.appendChild(el("path", { d, fill: LINE, "fill-opacity": 0.35, stroke: LINE, "stroke-opacity": 0.7, "stroke-width": 1 }));
+    family: (g, w, h) => {
+      const c = pick(DATA.family);
+      g.appendChild(el("rect", { x: 6, y: 6, width: w - 12, height: 46, rx: 6, fill: PANEL }));
+      person(g, 48, 22, 1.2);
+      person(g, 76, 21, 1.25);
+      person(g, 62, 35, 0.8);   // bachcha, aage
+      person(g, 98, 24, 1.1);
+      tx(g, 10, 68, c[0], 1);
+      tx(g, 10, 84, c[1], 0);
+      tx(g, 10, 98, c[2], 2);
+    },
+
+    advisor: (g, w, h) => {
+      const c = pick(DATA.advisor);
+      g.appendChild(el("rect", { x: 6, y: 6, width: w - 12, height: 46, rx: 6, fill: PANEL }));
+      person(g, 48, 24, 1.2, "#5F5E5A");   // client
+      person(g, 92, 24, 1.2, "#BA7517");   // advisor
+      g.appendChild(el("rect", { x: 60, y: 12, width: 20, height: 9, rx: 4.5, fill: RING, "fill-opacity": 0.6 })); // baatcheet
+      tx(g, 10, 68, c[0], 1);
+      tx(g, 10, 84, c[1], 0);
+      tx(g, 10, 98, c[2], 2);
     }
   };
 
-  // Shuru mein boxes is order mein lagte hain, taaki har tarah ka content bikhra rahe
-  const ORDER = ["person", "spark", "def", "thought", "calc", "donut", "value", "bars", "person", "def",
-                 "gauge", "calc", "thought", "area", "person", "value", "def", "spark", "calc", "thought",
-                 "person", "bars", "def", "donut", "value", "calc", "person", "gauge", "thought", "area"];
-
-  const CARD_W = 124;   // har box ki width
-  const GAP = 8;        // boxes ke beech gap
-  const MAX_ACTIVE = 6; // ek waqt pe kitne boxes review ho sakte hain
-  let cards = [];
+  // Shuru mein boxes is order mein lagte hain, taaki log aur data mix rahein
+  const ORDER = ["client", "calc", "family", "thought", "spark", "def", "advisor", "value", "client", "bars",
+                 "family", "calc", "donut", "thought", "advisor", "def", "client", "value", "spark", "family"];
 
   /* ==========================================================
-     5) WALL BANANA — screen size ke hisaab se columns bharte hain
+     6) EK BOX BANANA — shadow + frame + content
      ========================================================== */
+  function makeCard(slot, type, animate) {
+    const tilt = (rnd() * 4 - 2).toFixed(1); // halka sa tircha
+    const h = slot.h;
+    const outer = el("g", { transform: `translate(${slot.x} ${slot.y}) rotate(${tilt} ${CARD_W / 2} ${h / 2})` });
+    const g = el("g", { class: "drop" });
+
+    g.appendChild(el("rect", { x: 3, y: 4, width: CARD_W, height: h, rx: 8, fill: SHADOW, "fill-opacity": 0.55 }));
+    const frame = el("rect", { width: CARD_W, height: h, rx: 8, fill: CARD_FILL, "stroke-width": 1 });
+    frame.style.stroke = LINE;
+    frame.style.strokeOpacity = 0.6;
+    frame.style.transition = "stroke .4s";
+    g.appendChild(frame);
+
+    DRAW[type](g, CARD_W, h);
+    outer.appendChild(g);
+    svg.appendChild(outer); // sabse last wala sabse upar dikhta hai
+
+    if (animate) {
+      g.style.transform = "scale(1.3) translateY(-10px)";
+      g.style.opacity = 0;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        g.style.transform = "scale(1)";
+        g.style.opacity = 1;
+      }));
+    }
+    return { outer, g, frame };
+  }
+
+  /* ==========================================================
+     7) GRID BANANA — screen size ke hisaab se columns
+     ========================================================== */
+  let slots = [];
+
   function build() {
-    // Purane boxes ke pending timers ko band karne ke liye
-    cards.forEach(c => { c.alive = false; });
-    cards = [];
+    slots.forEach(s => { s.alive = false; }); // purane timers band
+    slots = [];
     svg.innerHTML = "";
 
-    // Badi screen pe wall thodi zoom hoti hai, taaki boxes bahut chhote na dikhein
+    // Badi screen pe wall thodi zoom hoti hai
     const scale = Math.min(1.4, Math.max(1, window.innerWidth / 1000));
     const W = window.innerWidth / scale;
     const H = window.innerHeight / scale;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.setAttribute("preserveAspectRatio", "xMidYMid slice");
 
-    const colCount = Math.ceil(W / (CARD_W + GAP)) + 1;
-    const offsets = [-18, 8, -6]; // columns ko upar-neeche khiskaya, taaki masonry lage
+    const step = CARD_W - OVERLAP;
+    const colCount = Math.ceil(W / step) + 1;
+    const offsets = [-24, -2, -14]; // columns upar-neeche khiske hue, taaki masonry lage
     const cols = [];
-    for (let i = 0; i < colCount; i++) cols.push({ x: 6 + i * (CARD_W + GAP), y: offsets[i % 3] });
+    for (let i = 0; i < colCount; i++) cols.push({ x: -6 + i * step, y: offsets[i % 3] });
 
     let k = 0;
     while (cols.some(c => c.y < H)) {
       for (const col of cols) {
         if (col.y >= H) continue;
         const type = ORDER[k++ % ORDER.length];
-        const h = HEIGHT[type];
-        cards.push(makeCard(col.x, col.y, h, type));
-        col.y += h + GAP;
+        const slot = { x: col.x, y: col.y, h: HEIGHT[type], busy: false, alive: true };
+        slot.card = makeCard(slot, type, false);
+        slots.push(slot);
+        col.y += slot.h - OVERLAP;
       }
     }
   }
 
-  // Ek box banata hai: frame + content + review ring + verdict badge
-  function makeCard(x, y, h, type) {
-    const g = el("g", {});
+  /* ==========================================================
+     8) CYCLE — gold ring → ✓ / ! verdict → naya box upar girta hai
+     ========================================================== */
+  function cycle(slot) {
+    slot.busy = true;
+    const later = (fn, ms) => setTimeout(() => { if (slot.alive) fn(); }, ms);
+    const card = slot.card;
+    const bx = CARD_W - 12, by = 12;
 
-    const frame = el("rect", { x, y, width: CARD_W, height: h, rx: 7, fill: "#791F1F", "fill-opacity": 0.35, "stroke-width": 0.9 });
-    frame.style.stroke = LINE;
-    frame.style.strokeOpacity = 0.45;
-    frame.style.transition = "stroke .4s, stroke-opacity .4s";
-    g.appendChild(frame);
-
-    const content = el("g", {});
-    content.style.transition = "opacity .6s";
-    g.appendChild(content);
-    DRAW[type](content, x, y, CARD_W, h);
-
-    const bx = x + CARD_W - 10, by = y + 10;
+    // Step 1: review shuru — gold border + bharta hua ring
     const ring = el("circle", {
-      cx: bx, cy: by, r: 7, fill: "none", stroke: "#FAC775", "stroke-width": 1.4,
+      cx: bx, cy: by, r: 7, fill: PANEL, stroke: RING, "stroke-width": 1.5,
       "stroke-dasharray": 44, "stroke-dashoffset": 44, transform: `rotate(-90 ${bx} ${by})`
     });
-    ring.style.opacity = 0;
-    g.appendChild(ring);
-
-    const badge = el("g", {});
-    badge.style.opacity = 0;
-    badge.style.transition = "opacity .3s";
-    g.appendChild(badge);
-
-    svg.appendChild(g);
-    return { x, y, h, frame, content, ring, badge, bx, by, busy: false, alive: true };
-  }
-
-  /* ==========================================================
-     6) REVIEW ANIMATION — ek box ka poora cycle:
-        gold highlight → ring bharta hai → ✓ / ! verdict → naya content
-     ========================================================== */
-  function review(cd) {
-    cd.busy = true;
-    const later = (fn, ms) => setTimeout(() => { if (cd.alive) fn(); }, ms);
-
-    // Step 1: box gold hota hai aur ring bharna shuru
-    cd.frame.style.stroke = "#FAC775";
-    cd.frame.style.strokeOpacity = 0.8;
-    cd.ring.style.transition = "none";
-    cd.ring.style.strokeDashoffset = 44;
-    cd.ring.style.opacity = 0.9;
-    requestAnimationFrame(() => {
-      cd.ring.style.transition = "stroke-dashoffset 1s linear";
-      cd.ring.style.strokeDashoffset = 0;
-    });
+    card.g.appendChild(ring);
+    card.frame.style.stroke = RING;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      ring.style.transition = "stroke-dashoffset 1s linear";
+      ring.style.strokeDashoffset = 0;
+    }));
 
     // Step 2: verdict — zyada tar pass, kabhi-kabhi flag
     later(() => {
+      ring.remove();
       const flagged = rnd() < 0.18;
-      cd.ring.style.opacity = 0;
-      cd.badge.innerHTML = "";
-      cd.badge.appendChild(el("circle", { cx: cd.bx, cy: cd.by, r: 6, fill: "#501313", stroke: flagged ? FLAG : PASS, "stroke-width": 1 }));
+      const color = flagged ? FLAG : PASS;
+      card.frame.style.stroke = color;
+      card.g.appendChild(el("circle", { cx: bx, cy: by, r: 7, fill: PANEL, stroke: color, "stroke-width": 1.2 }));
       if (flagged) {
-        const t = el("text", { x: cd.bx, y: cd.by + 3.5, "text-anchor": "middle", "font-size": 9, fill: FLAG });
+        const t = el("text", { x: bx, y: by + 4, "text-anchor": "middle", "font-size": 10, fill: color });
         t.textContent = "!";
-        cd.badge.appendChild(t);
+        card.g.appendChild(t);
       } else {
-        cd.badge.appendChild(el("polyline", {
-          points: `${cd.bx - 3},${cd.by} ${cd.bx - 1},${cd.by + 2.5} ${cd.bx + 3},${cd.by - 2.5}`,
-          fill: "none", stroke: PASS, "stroke-width": 1.3
+        card.g.appendChild(el("polyline", {
+          points: `${bx - 3.5},${by} ${bx - 1},${by + 3} ${bx + 3.5},${by - 3}`,
+          fill: "none", stroke: color, "stroke-width": 1.5
         }));
       }
-      cd.badge.style.opacity = 1;
-      cd.frame.style.stroke = flagged ? FLAG : PASS;
-      cd.frame.style.strokeOpacity = 0.6;
     }, 1050);
 
-    // Step 3: purana content fade out
+    // Step 3: naya box purane ke upar girta hai, purana hat jaata hai
     later(() => {
-      cd.content.style.opacity = 0;
-      cd.badge.style.opacity = 0;
-      cd.frame.style.stroke = LINE;
-      cd.frame.style.strokeOpacity = 0.45;
-    }, 3000);
+      slot.card = makeCard(slot, pick(SAME_HEIGHT[slot.h]), true);
+      setTimeout(() => card.outer.remove(), 750);
+    }, 2800);
 
-    // Step 4: same height ka naya content fade in
-    later(() => {
-      cd.content.innerHTML = "";
-      DRAW[pick(SAME_HEIGHT[cd.h])](cd.content, cd.x, cd.y, CARD_W, cd.h);
-      cd.content.style.opacity = 1;
-    }, 3650);
-
-    later(() => { cd.busy = false; }, 4400);
+    later(() => { slot.busy = false; }, 3800);
   }
 
   /* ==========================================================
-     7) START
+     9) START
      ========================================================== */
   build();
 
-  // Resize pe wall dobara banti hai (thoda ruk ke, taaki baar-baar na bane)
   let resizeTimer;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(build, 250);
   });
 
-  // Jinhe motion se dikkat hai (OS setting), unke liye wall static rehti hai
+  // Reduced motion wale users ke liye wall static rehti hai
   if (!reduceMotion) {
     setInterval(() => {
-      if (document.hidden) return; // tab chhupa ho to kaam mat karo, CPU bachao
-      const free = cards.filter(c => !c.busy);
-      const active = cards.length - free.length;
-      if (free.length && active < MAX_ACTIVE) review(pick(free));
-    }, 450);
+      if (document.hidden) return; // tab chhupa ho to CPU bachao
+      const free = slots.filter(s => !s.busy);
+      if (free.length && slots.length - free.length < MAX_ACTIVE) cycle(pick(free));
+    }, 600);
   }
 })();
 </script>
