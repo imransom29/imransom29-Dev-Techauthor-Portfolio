@@ -1,3 +1,15 @@
+<img width="1468" height="726" alt="Screenshot 2026-10-06 at 12 14 23 PM" src="https://github.com/user-attachments/assets/1b716e24-c577-46de-be96-43ba9c334035" />
+
+
+<img width="150" height="150" alt="app-tile" src="https://github.com/user-attachments/assets/387d9e86-7075-4878-a877-1461df49d5c5" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="WIMT Evaluation Studio"><title>WIMT Evaluation Studio</title><rect width="40" height="40" rx="11" fill="#FFFFFF"/><g transform="translate(5 5) scale(.75)"><path d="M7 33L33 27" stroke="#E8B425" stroke-width="4.2" stroke-linecap="round"/><path d="M7 33L24 9" stroke="#C8202A" stroke-width="4.2" stroke-linecap="round"/><path d="M17.3 30.6A11 11 0 0 0 13.2 24" fill="none" stroke="#C8202A" stroke-width="2.4" stroke-linecap="round" opacity=".55"/><circle cx="33" cy="27" r="3.6" fill="#E8B425"/><circle cx="24" cy="9" r="3.6" fill="#C8202A"/><circle cx="7" cy="33" r="3" fill="#C8202A"/></g></svg>
+
+
+CODE :
+
+IT HAS ANIMATION AS WELL
+
+Wimt home · HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +33,7 @@
   --page: #F7F3EE; --surface: #FFFFFF;
   --sans: "Wells Fargo Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   --serif: "Wells Fargo Serif", Georgia, "Times New Roman", serif;
-
+ 
   /* Fluid sizes: laptop se 4K tak barabar badhte hain */
   --bar-h: clamp(52px, 3.2vw, 72px);
   --side-w: clamp(220px, 13vw, 300px);
@@ -39,7 +51,7 @@ body {
 }
 svg { display: block; flex: none; }
 button, input { font: inherit; }
-
+ 
 /* =====================================================================
    2) APP BAR
    ===================================================================== */
@@ -61,7 +73,7 @@ button, input { font: inherit; }
 .lockup .name { font-family: var(--serif); font-size: clamp(17px, 1.2vw, 26px); color: #FFFFFF; line-height: 1.1; margin-top: 3px; white-space: nowrap; }
 .user { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: clamp(13px, .8vw, 16px); }
 .avatar { width: clamp(30px, 2vw, 42px); height: clamp(30px, 2vw, 42px); border-radius: 50%; background: #FFFFFF; color: var(--red-strong); display: grid; place-items: center; font-weight: 700; }
-
+ 
 /* =====================================================================
    3) SIDEBAR
    ===================================================================== */
@@ -87,7 +99,7 @@ button, input { font: inherit; }
 .connected .dot::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #6BC04B; border: 2px solid #A3121B; }
 .connected b { display: block; font-size: 12.5px; color: #FFFFFF; }
 .connected small { display: block; font-size: 11px; color: rgba(255,255,255,.72); }
-
+ 
 /* =====================================================================
    4) MAIN — ek hi column, sab uske andar, taaki sab ek rekha pe ho
    ===================================================================== */
@@ -109,10 +121,10 @@ button, input { font: inherit; }
 .page-head { padding: clamp(14px, 1vw, 24px) clamp(24px, 1.8vw, 40px) 0; }
 .page-head h2 { font-size: clamp(17px, 1.05vw, 22px); font-weight: 700; color: var(--ink); }
 .page-head p { font-size: clamp(12px, .72vw, 14.5px); color: var(--muted); margin-top: 2px; }
-
+ 
 .column { width: min(var(--col-w), calc(100% - 48px)); margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
 .hero { flex: 1; display: flex; align-items: center; padding: clamp(20px, 2vw, 48px) 0; }
-
+ 
 .mark {
   width: clamp(56px, 3.6vw, 80px); height: clamp(56px, 3.6vw, 80px); border-radius: 28%; background: #FFFFFF;
   display: grid; place-items: center; position: relative;
@@ -121,12 +133,12 @@ button, input { font: inherit; }
 .mark svg { width: 62%; height: 62%; }
 .mark::after { content: ""; position: absolute; inset: -7px; border-radius: 32%; border: 1px solid rgba(200,32,42,.28); animation: ring 2.6s ease-in-out infinite; }
 @keyframes ring { 50% { inset: -14px; opacity: 0; } }
-
+ 
 h1 { font-family: var(--serif); font-weight: 400; font-size: var(--h1); line-height: 1.12; letter-spacing: -.01em; color: var(--ink); text-align: center; margin-top: clamp(18px, 1.4vw, 30px); }
 h1 { letter-spacing: -.02em; }
 h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F17 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-style: italic; padding-right: .04em; }
 .subtitle { font-size: clamp(14px, .95vw, 19px); line-height: 1.5; color: var(--muted); text-align: center; margin-top: 10px; max-width: 46ch; }
-
+ 
 .cards { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, .8vw, 18px); margin-top: clamp(24px, 2vw, 42px); }
 .card {
   all: unset; cursor: pointer; background: var(--surface); border-radius: clamp(14px, 1vw, 20px);
@@ -147,7 +159,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
 .card .desc { font-size: clamp(12.5px, .8vw, 15.5px); color: var(--muted); line-height: 1.4; margin-top: 3px; }
 .card .arrow { opacity: 0; transition: opacity .18s ease; color: var(--red-dark); }
 .card:hover .arrow, .card[aria-pressed="true"] .arrow { opacity: 1; }
-
+ 
 .composer-wrap { padding: 0 0 clamp(18px, 1.6vw, 34px); }
 .composer {
   width: 100%; height: clamp(56px, 3.6vw, 74px); background: #FFFFFF; border-radius: clamp(16px, 1.1vw, 22px);
@@ -168,7 +180,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
 .send:disabled { background: #E5DDD2; box-shadow: none; cursor: not-allowed; transform: none; }
 .hint { font-size: clamp(11.5px, .7vw, 14px); color: #9C9289; text-align: center; margin-top: 8px; }
 .kbd { display: inline-block; font-size: .9em; background: #FFFFFF; border-radius: 5px; padding: 0 6px; box-shadow: 0 1px 0 rgba(60,30,10,.15); color: #5A504A; }
-
+ 
 /* Patli screens: sidebar sirf icons, cards ek ke neeche ek */
 @media (max-width: 900px) {
   .sidebar { width: 64px; padding: 14px 8px; }
@@ -182,7 +194,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
 </style>
 </head>
 <body>
-
+ 
 <header class="appbar">
   <div class="left">
     <button class="icon-btn" aria-label="Menu" data-icon="menu"></button>
@@ -200,7 +212,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
     <span class="user">Rahul <span class="avatar" aria-hidden="true">R</span></span>
   </div>
 </header>
-
+ 
 <div class="layout">
   <nav class="sidebar" aria-label="Main">
     <div class="nav-label">WORKSPACE</div>
@@ -217,18 +229,18 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
       <div class="connected"><span class="dot">S</span><div><b>Connected</b><small>Tachyon Overwatch</small></div></div>
     </div>
   </nav>
-
+ 
   <main class="main">
     <canvas id="field" aria-hidden="true"></canvas>
     <div class="page-head"><h2>Home</h2><p>Describe a check and the assistant drafts the evaluator</p></div>
-
+ 
     <section class="hero"><div class="column">
       <div class="mark" data-mark="red" aria-hidden="true"></div>
       <h1>What should we <span>evaluate</span>?</h1>
       <p class="subtitle">Describe a quality check. The assistant drafts an evaluator you can refine, save and run.</p>
       <div class="cards" id="cards" role="list"></div>
     </div></section>
-
+ 
     <div class="composer-wrap"><div class="column">
       <form class="composer" id="composer">
         <span data-icon="spark" style="color:#D71E28" aria-hidden="true"></span>
@@ -239,11 +251,11 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
     </div></div>
   </main>
 </div>
-
+ 
 <script>
 (function () {
   "use strict";
-
+ 
   /* ---------- Icons: inline SVG, kyunki icon CDN bank network pe block hota hai ---------- */
   const P = {
     menu: "M4 6h16M4 12h16M4 18h16",
@@ -264,7 +276,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
   };
   const icon = (name, color, size, sw) =>
     `<svg width="${size || 20}" height="${size || 20}" viewBox="0 0 24 24" fill="none" stroke="${color || "currentColor"}" stroke-width="${sw || 2}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[name]}"/></svg>`;
-
+ 
   /* ---------- The Angle mark (brand kit: mark-red.svg) ---------- */
   const ANGLE = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
     <path d="M7 33L33 27" stroke="#E8B425" stroke-width="4.2" stroke-linecap="round"/>
@@ -278,7 +290,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
     const color = name === "up" ? "#FFFFFF" : null;
     el.insertAdjacentHTML("afterbegin", icon(name, color, name === "up" ? 20 : isNav ? null : 20, name === "up" ? 2.4 : 2));
   });
-
+ 
   /* ---------- Starter cards ---------- */
   const CARDS = [
     { icon: "question", bg: "#FDF0F0", fg: "#D71E28", title: "Answers the question", desc: "Does the response address what the user asked?" },
@@ -302,7 +314,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
     send.disabled = false;
     input.focus();
   });
-
+ 
   /* ---------- Composer ---------- */
   input.addEventListener("input", () => { send.disabled = !input.value.trim(); });
   document.getElementById("composer").addEventListener("submit", (e) => {
@@ -312,7 +324,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
     document.dispatchEvent(new CustomEvent("home:draft", { detail: { text } }));
     console.log("draft evaluator:", text);
   });
-
+ 
   // Placeholder har 3 second mein ek wealth example dikhata hai
   const EXAMPLES = [
     "Ask the assistant to build an evaluator…",
@@ -324,7 +336,7 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
   setInterval(() => {
     if (document.activeElement !== input && !input.value) { k = (k + 1) % EXAMPLES.length; input.placeholder = EXAMPLES[k]; }
   }, 3000);
-
+ 
   /* ---------- HD vector field: "meaning space" jo The Angle logo se aata hai ----------
      Har line ek answer-vector hai, ek hi origin se. Bahut halka, bahut dheema,
      aur devicePixelRatio pe bana, isliye 4K pe bhi 1px jitna tez. */
@@ -381,3 +393,5 @@ h1 span { color: #A6141C; background: linear-gradient(135deg, #D71E28 0%, #8F0F1
 </script>
 </body>
 </html>
+ 
+
